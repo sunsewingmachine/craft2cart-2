@@ -31,17 +31,18 @@ export const ProductReadyScreen: React.FC<ProductReadyScreenProps> = ({
   };
 
   return (
-    <main className="w-full max-w-xl mx-auto flex-1 flex flex-col py-2 gap-4">
+    /* pb-32 clears the sticky "Sell Everywhere" button that floats above. */
+    <main className="w-full max-w-xl mx-auto flex-1 flex flex-col py-2 gap-4 pb-32">
       {/* Header Section */}
-      <header className="flex items-center justify-between w-full mb-6">
-        <div className="flex items-center gap-3">
+      <header className="flex items-center justify-between gap-3 w-full mb-6">
+        <div className="flex items-center gap-3 min-w-0">
           <div className="w-12 h-12 rounded-full bg-[#128752] flex items-center justify-center text-white shadow-sm flex-shrink-0">
             <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>
               check_circle
             </span>
           </div>
-          <div>
-            <h1 className="font-['Source_Serif_4',serif] text-2xl sm:text-3xl font-bold text-[#128752]">
+          <div className="min-w-0">
+            <h1 className="font-['Source_Serif_4',serif] text-xl xs:text-2xl sm:text-3xl font-bold text-[#128752] leading-tight">
               {t.productReadyTitle}
             </h1>
             <p className="text-xs text-[#57423a]">{bi('முதன்மை விவரம் சேமிக்கப்பட்டது ✓', 'Master profile saved ✓', lang)}</p>
@@ -123,16 +124,23 @@ export const ProductReadyScreen: React.FC<ProductReadyScreenProps> = ({
       </article>
 
       {/* Sticky Bottom Hero Button Container */}
-      <div className="fixed bottom-0 left-0 right-0 w-full flex justify-center px-4 sm:px-6 pb-24 md:pb-6 bg-gradient-to-t from-[#f9f9f6] via-[#f9f9f6] to-transparent pt-8 z-30 pointer-events-none">
+      <div
+        className="fixed bottom-0 left-0 right-0 w-full flex justify-center bg-gradient-to-t from-[#f9f9f6] via-[#f9f9f6] to-transparent pt-8 z-30 pointer-events-none"
+        style={{
+          paddingLeft: 'max(1rem, var(--safe-left))',
+          paddingRight: 'max(1rem, var(--safe-right))',
+          paddingBottom: 'calc(var(--app-nav-h) + var(--safe-bottom) + 0.75rem)'
+        }}
+      >
         <div className="w-full max-w-[600px] pointer-events-auto">
           <button
             onClick={() => {
               playTapTone('success');
               onSellEverywhere();
             }}
-            className="w-full min-h-[64px] bg-[#9f3e07] hover:bg-[#c05621] text-[#ffffff] rounded-2xl font-['Public_Sans'] font-bold text-xl sm:text-2xl tracking-wide soft-shadow sink-on-active transition-all flex items-center justify-center gap-3 shadow-lg"
+            className="w-full min-h-[64px] px-4 py-3 bg-[#9f3e07] hover:bg-[#c05621] text-[#ffffff] rounded-2xl font-['Public_Sans'] font-bold text-lg xs:text-xl sm:text-2xl tracking-wide leading-snug text-center soft-shadow sink-on-active transition-all flex items-center justify-center gap-3 shadow-lg"
           >
-            <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+            <span className="material-symbols-outlined text-3xl shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>
               storefront
             </span>
             <span>{t.sellEverywhere}</span>

@@ -69,14 +69,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             playTapTone('tap');
             onStartSell();
           }}
-          className="w-full bg-gradient-to-br from-[#9f3e07] to-[#7f2e03] text-[#ffffff] rounded-2xl py-6 px-6 flex flex-col items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-[0.98] transition-all relative overflow-hidden group cursor-pointer border border-[#803104]"
+          className="w-full bg-gradient-to-br from-[#9f3e07] to-[#7f2e03] text-[#ffffff] rounded-2xl py-6 px-4 sm:px-6 flex flex-col items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-[0.98] transition-all relative overflow-hidden group cursor-pointer border border-[#803104]"
         >
           <div className="w-14 h-14 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center mb-1 group-hover:scale-105 transition-transform">
             <span className="material-symbols-outlined text-[32px] text-white" style={{ fontVariationSettings: "'FILL' 1" }}>
               photo_camera
             </span>
           </div>
-          <span className="font-['Public_Sans'] font-extrabold text-2xl sm:text-3xl tracking-wide uppercase">
+          <span className="font-['Public_Sans'] font-extrabold text-xl xs:text-2xl sm:text-3xl tracking-wide uppercase text-center leading-tight">
             {t.sellAProduct}
           </span>
           <span className="text-xs sm:text-sm text-[#ffdbcd] font-medium tracking-normal text-center">
@@ -93,14 +93,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             playTapTone('tap');
             onViewProducts();
           }}
-          className="bg-[#ffffff] rounded-2xl p-4 sm:p-5 flex flex-col items-center justify-center gap-2.5 border border-[#e8e5df] shadow-sm hover:border-[#9f3e07]/40 active:scale-[0.98] transition-all min-h-[115px] cursor-pointer"
+          className="bg-[#ffffff] rounded-2xl p-3 pt-7 sm:p-5 sm:pt-8 flex flex-col items-center justify-center gap-2.5 border border-[#e8e5df] shadow-sm hover:border-[#9f3e07]/40 active:scale-[0.98] transition-all min-h-[115px] cursor-pointer"
         >
           <div className="w-11 h-11 rounded-full bg-[#ffdbcd]/40 flex items-center justify-center text-[#9f3e07]">
             <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>
               storefront
             </span>
           </div>
-          <span className="font-['Public_Sans'] font-bold text-sm sm:text-base text-[#1a1c1b] text-center">
+          <span className="font-['Public_Sans'] font-bold text-[13px] xs:text-sm sm:text-base text-[#1a1c1b] text-center leading-snug">
             {t.myProducts}
           </span>
         </button>
@@ -111,17 +111,17 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             playTapTone('tap');
             onViewBuyers();
           }}
-          className="bg-[#ffffff] rounded-2xl p-4 sm:p-5 flex flex-col items-center justify-center gap-2.5 border border-[#e8e5df] shadow-sm hover:border-[#9f3e07]/40 active:scale-[0.98] transition-all min-h-[115px] relative cursor-pointer"
+          className="bg-[#ffffff] rounded-2xl p-3 pt-7 sm:p-5 sm:pt-8 flex flex-col items-center justify-center gap-2.5 border border-[#e8e5df] shadow-sm hover:border-[#9f3e07]/40 active:scale-[0.98] transition-all min-h-[115px] relative cursor-pointer"
         >
           <div className="w-11 h-11 rounded-full bg-[#d6e0f6]/60 flex items-center justify-center text-[#2563eb]">
             <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>
               groups
             </span>
           </div>
-          <span className="font-['Public_Sans'] font-bold text-sm sm:text-base text-[#1a1c1b] text-center">
+          <span className="font-['Public_Sans'] font-bold text-[13px] xs:text-sm sm:text-base text-[#1a1c1b] text-center leading-snug">
             {t.buyers}
           </span>
-          <span className="absolute top-3 right-3 bg-[#128752] text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-xs">
+          <span className="absolute top-2 right-2 bg-[#128752] text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-xs whitespace-nowrap">
             {bi('2 புதியவை', '2 New', lang)}
           </span>
         </button>
@@ -141,10 +141,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </span>
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-['Public_Sans'] text-sm sm:text-base font-semibold text-[#1a1c1b] truncate">
+          <p className="font-['Public_Sans'] text-sm sm:text-base font-semibold text-[#1a1c1b] leading-snug line-clamp-2">
             {t.newOrdersNotice}
           </p>
-          <p className="text-xs text-[#78716c] truncate">
+          <p className="text-xs text-[#78716c] leading-snug line-clamp-2 mt-0.5">
             {bi('அமித் வர்மா 50 சணல் பைகள் கேட்கிறார்', 'Amit Verma (FabIndia) wants 50 Jute Bags', lang)}
           </p>
         </div>

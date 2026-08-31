@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
 @theme {
+  /* Extra breakpoint for small/compact phones (360px class devices). */
+  --breakpoint-xs: 400px;
+
   --color-primary: #9f3e07;
   --color-primary-container: #c05621;
   --color-primary-fixed: #ffdbcd;
@@ -129,3 +132,135 @@
   scrollbar-width: none;
 }
 
+
+/* ---------------------------------------------------------------
+   Responsive foundations (mobile-first)
+   --------------------------------------------------------------- */
+
+:root {
+  /* Notch / gesture-bar insets. Fall back to 0 on browsers without env(). */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  /* Chrome heights the app layout reserves space for. */
+  --app-header-h: 56px;
+  --app-nav-h: 64px;
+}
+
+@media (min-width: 640px) {
+  :root {
+    --app-header-h: 64px;
+    --app-nav-h: 68px;
+  }
+}
+
+/* Bottom nav is mobile-only, so desktop reclaims that space. */
+@media (min-width: 768px) {
+  :root {
+    --app-nav-h: 0px;
+  }
+}
+
+html {
+  /* Stop iOS/Android from inflating text in landscape. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+html,
+body {
+  /* A single stray wide child must never scroll the whole page sideways. */
+  max-width: 100%;
+  overflow-x: hidden;
+  overscroll-behavior-y: none;
+}
+
+/* Long unbroken strings (UPI ids, URLs, IDs, Tamil compounds) must wrap
+   rather than force the card wider than the viewport. */
+body {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Media never exceeds its container. */
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Kill the grey flash on tap without disabling focus styles. */
+button,
+a,
+[role='button'] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Visible keyboard focus, since tap highlight is suppressed above. */
+:focus-visible {
+  outline: 3px solid #9f3e07;
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* Inputs at <16px make iOS Safari zoom the page on focus. */
+input,
+select,
+textarea {
+  font-size: max(16px, 1rem);
+}
+
+/* Every interactive control clears the 44px minimum touch target. */
+.tap-target {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* Horizontal scrollers should snap and not fight the page's vertical scroll. */
+.snap-row {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.snap-row > * {
+  scroll-snap-align: start;
+  flex: none;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
+/* Respect users who ask for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .mic-pulse {
+    animation: none;
+  }
+}

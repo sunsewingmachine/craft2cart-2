@@ -24,29 +24,39 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 w-full z-40 bg-[#ffffff]/95 backdrop-blur-md border-t border-[#e8e5df] shadow-[0px_-4px_24px_rgba(0,0,0,0.06)] md:hidden">
-      <div className="flex justify-around items-center px-3 py-1.5 max-w-[500px] mx-auto h-[68px]">
+    <nav
+      className="fixed bottom-0 left-0 right-0 w-full z-40 bg-[#ffffff]/95 backdrop-blur-md border-t border-[#e8e5df] shadow-[0px_-4px_24px_rgba(0,0,0,0.06)] md:hidden"
+      style={{
+        paddingBottom: 'var(--safe-bottom)',
+        paddingLeft: 'var(--safe-left)',
+        paddingRight: 'var(--safe-right)'
+      }}
+    >
+      <div className="flex items-stretch gap-0.5 px-1 max-w-[560px] mx-auto h-[var(--app-nav-h)]">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`flex flex-col items-center justify-center transition-all duration-150 active:scale-95 py-1 px-3 rounded-2xl ${
+              aria-current={isActive ? 'page' : undefined}
+              /* flex-1 + basis-0 keeps all five tabs equal width, so a long
+                 Tamil label can never push its neighbours off-screen. */
+              className={`flex-1 basis-0 min-w-0 flex flex-col items-center justify-center gap-0.5 transition-all duration-150 active:scale-95 px-0.5 py-1.5 my-1 rounded-2xl ${
                 isActive
                   ? 'bg-[#ffdbcd]/40 text-[#9f3e07] font-bold'
                   : 'text-[#57423a] hover:text-[#9f3e07]'
               }`}
             >
               <span
-                className={`material-symbols-outlined text-[24px] mb-0.5 ${
+                className={`material-symbols-outlined text-[22px] leading-none shrink-0 ${
                   isActive ? 'fill' : ''
                 }`}
                 style={isActive ? { fontVariationSettings: "'FILL' 1" } : undefined}
               >
                 {tab.icon}
               </span>
-              <span className="text-[11px] leading-tight font-medium tracking-wide">
+              <span className="w-full text-[10px] xs:text-[11px] leading-tight font-medium tracking-tight text-center line-clamp-1 break-normal">
                 {tab.label}
               </span>
             </button>

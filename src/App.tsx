@@ -21,6 +21,33 @@ import { SellerProfileModal } from './components/SellerProfileModal';
 import { ChannelExportModal } from './components/ChannelExportModal';
 import { ProductEditModal } from './components/ProductEditModal';
 
+const PRODUCTS_STORAGE_KEY = 'craft2cart.products';
+const PROFILE_STORAGE_KEY = 'craft2cart.profile';
+
+// Products survive page refreshes; falls back to the demo set when storage is
+// empty, unreadable, or the user deleted everything (never an empty first run).
+const loadStoredProducts = (): ProductProfile[] | null => {
+  try {
+    const raw = localStorage.getItem(PRODUCTS_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const loadStoredProfile = (): UserProfile | null => {
+  try {
+    const raw = localStorage.getItem(PROFILE_STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as UserProfile) : null;
+  } catch {
+    return null;
+  }
+};
+
+const initialProducts = loadStoredProducts() ?? SAMPLE_PRODUCTS;
+
 export default function App() {
   // Navigation & Language
   const [activeTab, setActiveTab] = useState<'home' | 'products' | 'sell' | 'buyers' | 'help'>('home');
@@ -28,12 +55,12 @@ export default function App() {
   const [isSpeaking, setIsSpeaking] = useState(false);
 
   // Products & Buyers State
-  const [products, setProducts] = useState<ProductProfile[]>(SAMPLE_PRODUCTS);
-  const [currentProduct, setCurrentProduct] = useState<ProductProfile>(SAMPLE_PRODUCTS[0]);
+  const [products, setProducts] = useState<ProductProfile[]>(initialProducts);
+  const [currentProduct, setCurrentProduct] = useState<ProductProfile>(initialProducts[0]);
   const [buyers] = useState(DEMO_BUYERS);
 
   // Profile State
-  const [userProfile, setUserProfile] = useState<UserProfile>({
+  const [userProfile, setUserProfile] = useState<UserProfile>(() => loadStoredProfile() ?? {
     name: 'Lakshmi',
     location: 'Madurai, Tamil Nadu',
     avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCbFcB8ddjUgGcIrnZGL5EdCf2ZtC-4meSf22ZkPo8DWZiMP--s2r2jjm4onXvpeWKsrD_DUe22HiD306horcXQZlgZBxIMUPGYoJSXiyRuTJe7W-1rzFB2vRCkZnTmuH-HFMnU3GU-UIl7hIifxPOT6SPeWIseYwTqFo8Hg_t0Ul4afcRgSp-aq_Tl9WodKAK7EURWW40UttIUhXrLbimEkXcXiLjD1GCY1akZFfn5cLTxUVbDy0EI',
@@ -68,6 +95,37 @@ export default function App() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [selectedChannelExport, setSelectedChannelExport] = useState<SellingChannel['id'] | null>(null);
   const [productToEdit, setProductToEdit] = useState<ProductProfile | null>(null);
+
+  // Lock background scrolling while any modal is open, so touch-dragging the
+  // sheet on a phone doesn't scroll the page behind it.
+  const anyModalOpen = Boolean(productToEdit || showProfileModal || selectedChannelExport);
+  useEffect(() => {
+    if (!anyModalOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [anyModalOpen]);
+
+  // Persist products & profile so a page refresh doesn't wipe the catalog.
+  // Camera photos are stored as data URLs, so a full quota (~5MB) is possible —
+  // the app then simply keeps working in-memory.
+  useEffect(() => {
+    try {
+      localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(products));
+    } catch {
+      /* storage unavailable or full */
+    }
+  }, [products]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(userProfile));
+    } catch {
+      /* storage unavailable or full */
+    }
+  }, [userProfile]);
 
   // Listen to speech synthesis state
   useEffect(() => {
@@ -117,6 +175,11 @@ export default function App() {
     costLabor: number;
   }) => {
     stopSpeech();
+    // "handcrafted Handmade Jute Bag" reads doubled — drop handmade/handcrafted
+    // from the name inside the generated description.
+    const descName =
+      tempDetectedTitle.replace(/\b(handmade|handcrafted|hand-made)\b/gi, '').replace(/\s{2,}/g, ' ').trim() ||
+      tempDetectedTitle;
     const newProduct: ProductProfile = {
       id: `prod-${Date.now()}`,
       name: tempDetectedTitle,
@@ -127,7 +190,7 @@ export default function App() {
       price: details.price,
       costMaterial: details.costMaterial,
       costLabor: details.costLabor,
-      description: `Eco-friendly, authentic handcrafted ${tempDetectedTitle.toLowerCase()} made with ${details.material}. Prepared for multi-channel listing.`,
+      description: `Eco-friendly, authentic handcrafted ${descName.toLowerCase()} made with ${details.material}. Prepared for multi-channel listing.`,
       image: tempPhoto,
       tags: ['Handmade', 'Artisan', 'Sustainable', 'Craft2Cart Verified'],
       location: userProfile.location || 'Madurai, Tamil Nadu',
@@ -144,15 +207,16 @@ export default function App() {
   // Delete Product Handler
   const handleDeleteProduct = (productId: string) => {
     stopSpeech();
-    setProducts((prev) => {
-      const updated = prev.filter((p) => p.id !== productId);
-      if (currentProduct && currentProduct.id === productId) {
-        if (updated.length > 0) {
-          setCurrentProduct(updated[0]);
-        }
+    const updated = products.filter((p) => p.id !== productId);
+    setProducts(updated);
+    if (currentProduct && currentProduct.id === productId) {
+      if (updated.length > 0) {
+        setCurrentProduct(updated[0]);
+      } else {
+        // Nothing left to show in the sell flow — restart from the photo step.
+        setSellStep('photo');
       }
-      return updated;
-    });
+    }
   };
 
   // Save Edited Product Handler
@@ -206,7 +270,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f9f9f6] text-[#1a1c1b] flex flex-col font-['Public_Sans'] pb-24 select-none">
+    <div className="min-h-[100svh] w-full overflow-x-hidden bg-[#f9f9f6] text-[#1a1c1b] flex flex-col font-['Public_Sans'] select-none">
       {/* Top Header Bar */}
       <TopAppBar
         currentLang={currentLang}
@@ -221,7 +285,17 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 pt-20 pb-4 flex flex-col">
+      {/* Padding reserves the fixed header, the fixed bottom nav, and the
+          device's notch/gesture-bar insets — see --app-* vars in index.css. */}
+      <div
+        className="flex-1 w-full max-w-6xl mx-auto flex flex-col min-w-0"
+        style={{
+          paddingLeft: 'max(1rem, var(--safe-left))',
+          paddingRight: 'max(1rem, var(--safe-right))',
+          paddingTop: 'calc(var(--app-header-h) + var(--safe-top) + 1rem)',
+          paddingBottom: 'calc(var(--app-nav-h) + var(--safe-bottom) + 1rem)'
+        }}
+      >
         {activeTab === 'home' && (
           <HomeScreen
             lang={currentLang}

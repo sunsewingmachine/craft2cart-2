@@ -196,28 +196,28 @@ export const MyProductsScreen: React.FC<MyProductsScreenProps> = ({
                   className="flex justify-between items-start cursor-pointer"
                 >
                   <div className="flex-1 min-w-0 pr-3">
-                    <h3 className="font-['Source_Serif_4',serif] text-xl font-bold text-[#1a1c1b] truncate group-hover:text-[#9f3e07] transition-colors">
+                    <h3 className="font-['Source_Serif_4',serif] text-lg sm:text-xl font-bold text-[#1a1c1b] leading-snug line-clamp-2 group-hover:text-[#9f3e07] transition-colors">
                       {prod.name}
                     </h3>
-                    <span className="text-xs text-[#555f71] block mt-0.5 truncate">
+                    <span className="text-xs text-[#555f71] block mt-1 leading-snug line-clamp-2">
                       🧵 {prod.material} • {bi('எண்ணிக்கை', 'Qty', lang)}: {prod.quantity} {prod.dimensions ? `• ${prod.dimensions}` : ''}
                     </span>
                   </div>
 
-                  <span className="font-['Public_Sans'] font-extrabold text-2xl text-[#9f3e07] shrink-0">
+                  <span className="font-['Public_Sans'] font-extrabold text-xl sm:text-2xl text-[#9f3e07] shrink-0 whitespace-nowrap">
                     ₹{prod.price}
                   </span>
                 </div>
 
                 {/* Secondary Action Toolbar */}
-                <div className="flex items-center gap-2 pt-2 border-t border-[#e8e5df]">
+                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#e8e5df]">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       playTapTone('tap');
                       onEditProduct(prod);
                     }}
-                    className="flex-1 py-2 px-3 rounded-xl bg-[#f4f4f1] hover:bg-[#ffdbcd]/50 text-[#9f3e07] text-xs font-bold flex items-center justify-center gap-1.5 transition-all border border-[#dec0b5] active:scale-95"
+                    className="flex-1 basis-[8rem] min-w-0 min-h-[44px] py-2 px-3 rounded-xl bg-[#f4f4f1] hover:bg-[#ffdbcd]/50 text-[#9f3e07] text-xs font-bold flex items-center justify-center gap-1.5 text-center leading-snug transition-all border border-[#dec0b5] active:scale-95"
                   >
                     <span className="material-symbols-outlined text-base">edit</span>
                     <span>{bi('திருத்து', 'Edit Details', lang)}</span>
@@ -229,7 +229,7 @@ export const MyProductsScreen: React.FC<MyProductsScreenProps> = ({
                       playTapTone('tap');
                       onSelectProduct(prod);
                     }}
-                    className="flex-1 py-2 px-3 rounded-xl bg-[#9f3e07] hover:bg-[#c05621] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs active:scale-95"
+                    className="flex-1 basis-[8rem] min-w-0 min-h-[44px] py-2 px-3 rounded-xl bg-[#9f3e07] hover:bg-[#c05621] text-white text-xs font-bold flex items-center justify-center gap-1.5 text-center leading-snug transition-all shadow-xs active:scale-95"
                   >
                     <span className="material-symbols-outlined text-base">storefront</span>
                     <span>{bi('விற்க', 'Sell Channels', lang)}</span>
@@ -272,7 +272,15 @@ export const MyProductsScreen: React.FC<MyProductsScreenProps> = ({
       {/* DELETE CONFIRMATION MODAL                                             */}
       {/* ===================================================================== */}
       {productToDelete && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex justify-center items-center p-4 animate-fade-in">
+        <div
+          className="fixed inset-0 z-50 h-[100svh] bg-black/60 backdrop-blur-sm flex justify-center items-center overflow-y-auto overscroll-contain animate-fade-in"
+          style={{
+            paddingTop: 'max(0.75rem, var(--safe-top))',
+            paddingBottom: 'max(0.75rem, var(--safe-bottom))',
+            paddingLeft: 'max(0.75rem, var(--safe-left))',
+            paddingRight: 'max(0.75rem, var(--safe-right))'
+          }}
+        >
           <div className="bg-[#ffffff] text-[#1a1c1b] rounded-3xl w-full max-w-md shadow-2xl border border-[#e8e5df] p-5 sm:p-6 flex flex-col gap-4 animate-scale-up">
             
             {/* Modal Header */}
@@ -309,10 +317,10 @@ export const MyProductsScreen: React.FC<MyProductsScreenProps> = ({
                 className="w-16 h-16 rounded-xl object-cover border border-[#e8e5df] bg-[#eeeeeb] shrink-0"
               />
               <div className="flex-1 min-w-0">
-                <h4 className="font-bold text-sm text-[#1a1c1b] truncate">
+                <h4 className="font-bold text-sm text-[#1a1c1b] leading-snug line-clamp-2">
                   {productToDelete.name}
                 </h4>
-                <p className="text-xs text-[#57423a] truncate">
+                <p className="text-xs text-[#57423a] leading-snug line-clamp-2">
                   🧵 {productToDelete.material} • {bi('எண்ணிக்கை', 'Qty', lang)}: {productToDelete.quantity}
                 </p>
                 <p className="font-extrabold text-sm text-[#9f3e07] mt-0.5">

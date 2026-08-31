@@ -37,10 +37,20 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
   ];
 
   return (
-    <header className="fixed top-0 left-0 right-0 w-full z-50 bg-[#ffffff]/95 backdrop-blur-md border-b border-[#e8e5df] shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
-      <div className="flex justify-between items-center px-4 sm:px-6 h-16 max-w-6xl mx-auto">
-        {/* Left Side: Back button or Avatar + Brand */}
-        <div className="flex items-center gap-3 shrink-0">
+    <header
+      className="fixed top-0 left-0 right-0 w-full z-50 bg-[#ffffff]/95 backdrop-blur-md border-b border-[#e8e5df] shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
+      style={{ paddingTop: 'var(--safe-top)' }}
+    >
+      <div
+        className="flex justify-between items-center gap-2 h-[var(--app-header-h)] max-w-6xl mx-auto"
+        style={{
+          paddingLeft: 'max(0.75rem, var(--safe-left))',
+          paddingRight: 'max(0.75rem, var(--safe-right))'
+        }}
+      >
+        {/* Left Side: Back button or Avatar + Brand. min-w-0 lets the brand
+            shrink instead of shoving the language pill off-screen. */}
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           {onBack ? (
             <button
               onClick={() => {
@@ -74,11 +84,11 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
           )}
 
           <div
-            className="flex flex-col cursor-pointer select-none"
+            className="flex flex-col cursor-pointer select-none min-w-0"
             onClick={() => onTabChange && onTabChange('home')}
           >
-            <div className="flex items-center gap-1.5">
-              <h1 className="font-['Public_Sans'] font-extrabold text-xl sm:text-2xl text-[#9f3e07] tracking-tight leading-tight">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <h1 className="font-['Public_Sans'] font-extrabold text-lg xs:text-xl sm:text-2xl text-[#9f3e07] tracking-tight leading-tight truncate">
                 {title}
               </h1>
             </div>
@@ -119,7 +129,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
         )}
 
         {/* Right Side: Language switcher + Audio speaking alert + Profile icon */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           {/* Speaking Audio Indicator */}
           {isSpeaking && (
             <button
@@ -135,10 +145,10 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
           )}
 
           {/* Language Selector */}
-          <div className="flex items-center bg-[#f2f0eb] rounded-full p-1 border border-[#e8e5df] shadow-inner">
+          <div className="flex items-center bg-[#f2f0eb] rounded-full p-0.5 sm:p-1 border border-[#e8e5df] shadow-inner shrink-0">
             <button
               onClick={() => onLanguageChange('en')}
-              className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all ${
+              className={`px-2 sm:px-2.5 py-1.5 rounded-full text-[11px] sm:text-xs font-bold leading-none whitespace-nowrap transition-all ${
                 currentLang === 'en'
                   ? 'bg-[#9f3e07] text-white shadow-sm'
                   : 'text-[#57423a] hover:text-[#9f3e07]'
@@ -148,7 +158,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
             </button>
             <button
               onClick={() => onLanguageChange('ta')}
-              className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all ${
+              className={`px-2 sm:px-2.5 py-1.5 rounded-full text-[11px] sm:text-xs font-bold leading-none whitespace-nowrap transition-all ${
                 currentLang === 'ta'
                   ? 'bg-[#9f3e07] text-white shadow-sm'
                   : 'text-[#57423a] hover:text-[#9f3e07]'
@@ -159,7 +169,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
             <button
               onClick={() => onLanguageChange('both')}
               title="Tamil and English together"
-              className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all ${
+              className={`px-2 sm:px-2.5 py-1.5 rounded-full text-[11px] sm:text-xs font-bold leading-none whitespace-nowrap transition-all ${
                 currentLang === 'both'
                   ? 'bg-[#9f3e07] text-white shadow-sm'
                   : 'text-[#57423a] hover:text-[#9f3e07]'
@@ -176,7 +186,9 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
               onOpenProfile();
             }}
             aria-label="View profile"
-            className="w-10 h-10 rounded-full flex items-center justify-center text-[#57423a] hover:bg-[#f2f0eb] active:scale-95 transition-all"
+            className={`w-10 h-10 shrink-0 rounded-full items-center justify-center text-[#57423a] hover:bg-[#f2f0eb] active:scale-95 transition-all ${
+              onBack ? 'flex' : 'hidden sm:flex'
+            }`}
           >
             <span className="material-symbols-outlined text-[26px]">account_circle</span>
           </button>

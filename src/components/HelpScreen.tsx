@@ -232,7 +232,15 @@ export const HelpScreen: React.FC<HelpScreenProps> = ({ lang }) => {
 
       {/* Video Guide Player Modal */}
       {selectedVideo && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div
+          className="fixed inset-0 z-50 h-[100svh] bg-black/70 backdrop-blur-sm flex items-center justify-center overflow-y-auto overscroll-contain"
+          style={{
+            paddingTop: 'max(0.75rem, var(--safe-top))',
+            paddingBottom: 'max(0.75rem, var(--safe-bottom))',
+            paddingLeft: 'max(0.75rem, var(--safe-left))',
+            paddingRight: 'max(0.75rem, var(--safe-right))'
+          }}
+        >
           <div className="bg-[#ffffff] rounded-3xl p-6 max-w-md w-full shadow-2xl flex flex-col gap-4">
             <div className="flex justify-between items-center">
               <h4 className="font-bold text-lg text-[#1a1c1b]">{selectedVideo.title}</h4>

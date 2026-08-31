@@ -44,7 +44,13 @@ export const SellEverywhereScreen: React.FC<SellEverywhereScreenProps> = ({
 
   const handleCardClick = (channel: SellingChannel) => {
     playTapTone('tap');
-    onOpenChannel(channel.id);
+    if (channel.id === 'whatsapp') {
+      onOpenWhatsApp();
+    } else if (channel.id === 'fairs') {
+      onOpenGovtFair();
+    } else {
+      onOpenChannel(channel.id);
+    }
   };
 
   const localStatusLabel = (status: SellingChannel['status'], fallback: string) => {
@@ -81,9 +87,9 @@ export const SellEverywhereScreen: React.FC<SellEverywhereScreenProps> = ({
     <main className="w-full max-w-xl mx-auto flex-1 flex flex-col py-2 gap-4">
       {/* Header Section with Audio Assist */}
       <section className="flex flex-col gap-2 pt-2">
-        <div className="flex items-start justify-between">
-          <div>
-            <h2 className="font-['Source_Serif_4',serif] text-2xl sm:text-3xl font-bold text-[#9f3e07] flex items-center gap-2">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="font-['Source_Serif_4',serif] text-xl xs:text-2xl sm:text-3xl font-bold text-[#9f3e07] flex items-center gap-2">
               <span
                 className="material-symbols-outlined text-[#128752]"
                 style={{ fontVariationSettings: "'FILL' 1" }}
@@ -100,7 +106,7 @@ export const SellEverywhereScreen: React.FC<SellEverywhereScreenProps> = ({
           <button
             onClick={handleHearInstructions}
             aria-label="Read screen instructions aloud"
-            className="w-12 h-12 bg-[#d6e0f6] text-[#555f71] rounded-full flex items-center justify-center soft-shadow btn-press hover:bg-[#bdc7dc] shrink-0"
+            className="w-12 h-12 tap-target bg-[#d6e0f6] text-[#555f71] rounded-full flex items-center justify-center soft-shadow btn-press hover:bg-[#bdc7dc] shrink-0"
           >
             <span className="material-symbols-outlined text-2xl fill" style={{ fontVariationSettings: "'FILL' 1" }}>
               volume_up
@@ -117,10 +123,10 @@ export const SellEverywhereScreen: React.FC<SellEverywhereScreenProps> = ({
               className="w-12 h-12 rounded-xl object-cover border border-[#e8e5df] shrink-0 bg-[#eeeeeb]"
             />
             <div className="flex-1 min-w-0">
-              <p className="font-['Public_Sans'] text-sm sm:text-base text-[#1a1c1b] font-bold truncate">
+              <p className="font-['Public_Sans'] text-sm sm:text-base text-[#1a1c1b] font-bold leading-snug line-clamp-2">
                 {product.name} • ₹{product.price}
               </p>
-              <p className="text-xs text-[#57423a] truncate">
+              <p className="text-xs text-[#57423a] leading-snug line-clamp-2 mt-0.5">
                 🧵 {product.material} • {bi('எண்ணிக்கை', 'Qty', lang)}: {product.quantity}
               </p>
             </div>
@@ -155,40 +161,49 @@ export const SellEverywhereScreen: React.FC<SellEverywhereScreenProps> = ({
       {/* Channels List */}
       <section className="flex flex-col gap-3 mt-2">
         {SELLING_CHANNELS.map((channel) => (
-          <div
+          <button
             key={channel.id}
+            type="button"
             onClick={() => handleCardClick(channel)}
-            className="bg-[#ffffff] rounded-2xl p-3.5 sm:p-4 flex items-center justify-between border border-[#e8e5df] soft-shadow min-h-[76px] cursor-pointer hover:border-[#9f3e07]/60 active:scale-[0.98] transition-all"
+            className="w-full text-left bg-[#ffffff] rounded-2xl p-3 sm:p-4 border border-[#e8e5df] soft-shadow min-h-[76px] cursor-pointer hover:border-[#9f3e07]/60 active:scale-[0.98] transition-all
+                       grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 sm:gap-x-3.5"
           >
-            {/* Left: Icon + Easy Name + Tamil Subtitle */}
-            <div className="flex items-center gap-3.5 min-w-0 flex-1 pr-2">
-              <div className="w-12 h-12 rounded-2xl bg-[#f4f4f1] border border-[#e8e5df] flex items-center justify-center text-[#9f3e07] shrink-0">
-                <span className="material-symbols-outlined text-2xl">{channel.icon}</span>
-              </div>
-              <div className="flex flex-col min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-['Public_Sans'] font-bold text-base sm:text-lg text-[#1a1c1b] truncate">
-                    {channel.easyName}
-                  </span>
-                </div>
-                <span className="text-xs text-[#57423a] truncate">
-                  {lang === 'en'
-                    ? channel.englishSubtitle
-                    : lang === 'ta'
-                    ? channel.tamilSubtitle.split('·')[0].trim()
-                    : channel.tamilSubtitle}
-                </span>
-              </div>
+            {/* Icon */}
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-[#f4f4f1] border border-[#e8e5df] flex items-center justify-center text-[#9f3e07] shrink-0">
+              <span className="material-symbols-outlined text-2xl">{channel.icon}</span>
             </div>
 
-            {/* Right: Honest Status Badge + Action chevron */}
+            {/* Easy Name + Subtitle. Wraps to two lines instead of truncating,
+                so names like "ONDC (Seller App)" stay readable on 360px phones. */}
+            <div className="flex flex-col min-w-0">
+              <span className="font-['Public_Sans'] font-bold text-[15px] xs:text-base sm:text-lg text-[#1a1c1b] leading-snug line-clamp-2">
+                {channel.easyName}
+              </span>
+              <span className="text-xs text-[#57423a] leading-snug line-clamp-2 mt-0.5">
+                {lang === 'en'
+                  ? channel.englishSubtitle
+                  : lang === 'ta'
+                  ? channel.tamilSubtitle.split('·')[0].trim()
+                  : channel.tamilSubtitle}
+              </span>
+            </div>
+
+            {/* Right cluster: badge sits inline only where there is room for it. */}
             <div className="flex items-center gap-2 shrink-0">
-              {getStatusBadge(channel.status, localStatusLabel(channel.status, channel.statusLabel))}
+              <span className="hidden sm:inline-flex">
+                {getStatusBadge(channel.status, localStatusLabel(channel.status, channel.statusLabel))}
+              </span>
               <span className="material-symbols-outlined text-[#57423a] text-lg">
                 chevron_right
               </span>
             </div>
-          </div>
+
+            {/* Below sm the badge drops to its own row rather than squeezing
+                the channel name into an ellipsis. */}
+            <div className="col-start-2 col-span-2 flex flex-wrap items-center gap-2 sm:hidden">
+              {getStatusBadge(channel.status, localStatusLabel(channel.status, channel.statusLabel))}
+            </div>
+          </button>
         ))}
       </section>
 
@@ -196,10 +211,10 @@ export const SellEverywhereScreen: React.FC<SellEverywhereScreenProps> = ({
       <section className="mt-4 mb-4">
         <button
           onClick={handleSellEverywhereClick}
-          className="w-full min-h-[64px] bg-[#9f3e07] hover:bg-[#c05621] text-[#ffffff] rounded-2xl font-['Public_Sans'] font-bold text-lg sm:text-xl flex items-center justify-center gap-3 soft-shadow btn-press shadow-md"
+          className="w-full min-h-[64px] px-4 py-3 bg-[#9f3e07] hover:bg-[#c05621] text-[#ffffff] rounded-2xl font-['Public_Sans'] font-bold text-base xs:text-lg sm:text-xl flex items-center justify-center gap-3 text-center leading-snug soft-shadow btn-press shadow-md"
         >
-          <span>{t.sellEverywhere}</span>
-          <span className="material-symbols-outlined text-2xl">rocket_launch</span>
+          <span className="min-w-0">{t.sellEverywhere}</span>
+          <span className="material-symbols-outlined text-2xl shrink-0">rocket_launch</span>
         </button>
       </section>
     </main>

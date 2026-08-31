@@ -258,10 +258,18 @@ export const ChannelExportModal: React.FC<ChannelExportModalProps> = ({
   // Copy helper text
   const handleCopyHelperText = () => {
     playTapTone('success');
-    navigator.clipboard.writeText(helperText);
-    setCopied(true);
-    speakText('Helper format copied to clipboard!', lang);
-    setTimeout(() => setCopied(false), 2500);
+    navigator.clipboard
+      .writeText(helperText)
+      .then(() => {
+        setCopied(true);
+        speakText('Helper format copied to clipboard!', lang);
+        setTimeout(() => setCopied(false), 2500);
+      })
+      .catch(() => {
+        // Clipboard can be blocked (permissions/insecure context) — the
+        // download button remains as the working alternative.
+        speakText('Copy was blocked by the browser. Please use the download button.', lang);
+      });
   };
 
   // Download helper text as text file
@@ -285,20 +293,28 @@ export const ChannelExportModal: React.FC<ChannelExportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex justify-center items-center p-3 sm:p-4 animate-fade-in overflow-y-auto">
-      <div className="bg-[#f9f9f6] text-[#1a1c1b] rounded-3xl w-full max-w-lg shadow-2xl border border-[#e8e5df] p-4 sm:p-6 flex flex-col gap-4 max-h-[92vh] overflow-y-auto">
+    <div
+      className="fixed inset-0 z-50 h-[100svh] bg-black/60 backdrop-blur-sm flex justify-center items-center overflow-y-auto overscroll-contain animate-fade-in"
+      style={{
+        paddingTop: 'max(0.75rem, var(--safe-top))',
+        paddingBottom: 'max(0.75rem, var(--safe-bottom))',
+        paddingLeft: 'max(0.75rem, var(--safe-left))',
+        paddingRight: 'max(0.75rem, var(--safe-right))'
+      }}
+    >
+      <div className="bg-[#f9f9f6] text-[#1a1c1b] rounded-3xl w-full max-w-lg shadow-2xl border border-[#e8e5df] p-4 sm:p-6 flex flex-col gap-4 max-h-full overflow-y-auto overscroll-contain">
         
         {/* ========================================================================= */}
         {/* MODAL HEADER                                                              */}
         {/* ========================================================================= */}
-        <header className="flex justify-between items-start pb-3 border-b border-[#e8e5df]">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-[#ffdbcd]/60 flex items-center justify-center text-[#9f3e07] shrink-0 border border-[#dec0b5]">
+        <header className="flex justify-between items-start gap-2 pb-3 border-b border-[#e8e5df]">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-[#ffdbcd]/60 flex items-center justify-center text-[#9f3e07] shrink-0 border border-[#dec0b5]">
               <span className="material-symbols-outlined text-2xl">{channel.icon}</span>
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-['Source_Serif_4',serif] text-xl sm:text-2xl font-bold text-[#1a1c1b] uppercase tracking-wide">
+                <h3 className="font-['Source_Serif_4',serif] text-lg xs:text-xl sm:text-2xl font-bold text-[#1a1c1b] uppercase tracking-wide leading-tight">
                   {channel.easyName}
                 </h3>
                 {getStatusBadge()}
@@ -313,7 +329,7 @@ export const ChannelExportModal: React.FC<ChannelExportModalProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
             {/* Audio Assist Button (Reads Active View in Tamil) */}
             <button
               onClick={handleHear}
@@ -341,17 +357,17 @@ export const ChannelExportModal: React.FC<ChannelExportModalProps> = ({
         {/* PRODUCT SUMMARY CARD (Shared Truth Across All Flows)                      */}
         {/* ========================================================================= */}
         <section className="bg-[#ffffff] rounded-2xl p-3.5 sm:p-4 border border-[#e8e5df] shadow-xs flex flex-col gap-3">
-          <div className="flex items-center gap-3.5">
+          <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
             <img
               src={product.image}
               alt={product.name}
-              className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover border border-[#e8e5df] shrink-0 bg-[#eeeeeb]"
+              className="w-14 h-14 sm:w-20 sm:h-20 rounded-xl object-cover border border-[#e8e5df] shrink-0 bg-[#eeeeeb]"
             />
             <div className="flex-1 min-w-0">
               <span className="inline-block text-[11px] font-bold text-[#128752] bg-[#91f8b8]/30 px-2 py-0.5 rounded-md mb-1">
                 {bi('பேக் தயார் ✓', 'Pack ready ✓', lang)}
               </span>
-              <h4 className="font-['Source_Serif_4',serif] text-lg sm:text-xl font-bold text-[#1a1c1b] truncate">
+              <h4 className="font-['Source_Serif_4',serif] text-base sm:text-xl font-bold text-[#1a1c1b] leading-snug line-clamp-2">
                 {product.name}
               </h4>
               <p className="font-['Public_Sans'] font-extrabold text-xl text-[#9f3e07]">
@@ -364,26 +380,26 @@ export const ChannelExportModal: React.FC<ChannelExportModalProps> = ({
 
           {/* 3 Simple Product Fact Rows */}
           <div className="flex flex-col gap-2 text-xs sm:text-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-[#57423a] flex items-center gap-1.5 font-medium">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+              <span className="text-[#57423a] flex items-center gap-1.5 font-medium shrink-0">
                 <span>🧱</span> {bi('மூலப்பொருள்', 'Material', lang)}
               </span>
-              <span className="font-bold text-[#1a1c1b] text-right truncate max-w-[65%]">
+              <span className="font-bold text-[#1a1c1b] text-right min-w-0 flex-1">
                 {materialDisplay}
               </span>
             </div>
 
-            <div className="flex items-center justify-between">
-              <span className="text-[#57423a] flex items-center gap-1.5 font-medium">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+              <span className="text-[#57423a] flex items-center gap-1.5 font-medium shrink-0">
                 <span>📏</span> {bi('அளவு & எடை', 'Size & weight', lang)}
               </span>
-              <span className="font-bold text-[#1a1c1b] text-right truncate max-w-[65%]">
+              <span className="font-bold text-[#1a1c1b] text-right min-w-0 flex-1">
                 {sizeWeightDisplay}
               </span>
             </div>
 
-            <div className="flex items-center justify-between">
-              <span className="text-[#57423a] flex items-center gap-1.5 font-medium">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+              <span className="text-[#57423a] flex items-center gap-1.5 font-medium shrink-0">
                 <span>📦</span> {bi('இருப்பு', 'Stock', lang)}
               </span>
               <span className="font-bold text-[#1a1c1b] text-right">

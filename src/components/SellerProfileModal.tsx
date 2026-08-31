@@ -109,8 +109,16 @@ export const SellerProfileModal: React.FC<SellerProfileModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex justify-center items-start overflow-y-auto p-3 sm:p-6 animate-fade-in">
-      <div className="bg-[#f9f9f6] text-[#1a1c1b] rounded-3xl w-full max-w-2xl shadow-2xl border border-[#e8e5df] p-5 sm:p-8 my-4 sm:my-8 relative flex flex-col gap-6">
+    <div
+      className="fixed inset-0 z-50 h-[100svh] bg-black/60 backdrop-blur-sm flex justify-center items-start overflow-y-auto overscroll-contain animate-fade-in"
+      style={{
+        paddingTop: 'max(0.75rem, var(--safe-top))',
+        paddingBottom: 'max(0.75rem, var(--safe-bottom))',
+        paddingLeft: 'max(0.75rem, var(--safe-left))',
+        paddingRight: 'max(0.75rem, var(--safe-right))'
+      }}
+    >
+      <div className="bg-[#f9f9f6] text-[#1a1c1b] rounded-3xl w-full max-w-2xl shadow-2xl border border-[#e8e5df] p-4 sm:p-8 my-auto relative flex flex-col gap-6">
         
         {/* Toast */}
         {savedToast && (

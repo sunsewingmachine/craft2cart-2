@@ -20,6 +20,9 @@ export const TakePhotoScreen: React.FC<TakePhotoScreenProps> = ({
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
 
   const [stream, setStream] = useState<MediaStream | null>(null);
+  // Mirror of `stream` for the unmount cleanup — the [] effect below would
+  // otherwise close over the initial null and leave tracks running.
+  const streamRef = useRef<MediaStream | null>(null);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
@@ -33,6 +36,7 @@ export const TakePhotoScreen: React.FC<TakePhotoScreenProps> = ({
       stream.getTracks().forEach((track) => track.stop());
       setStream(null);
     }
+    streamRef.current = null;
     setIsCameraActive(false);
   }, [stream]);
 
@@ -57,6 +61,7 @@ export const TakePhotoScreen: React.FC<TakePhotoScreenProps> = ({
       });
 
       setStream(newStream);
+      streamRef.current = newStream;
       setIsCameraActive(true);
       if (videoRef.current) {
         videoRef.current.srcObject = newStream;
@@ -69,11 +74,12 @@ export const TakePhotoScreen: React.FC<TakePhotoScreenProps> = ({
     }
   }, [stopCamera]);
 
-  // Request camera on mount
+  // The camera starts only on a user tap — a permission popup that fires the
+  // moment the screen opens gets denied (or auto-blocked) far more often.
+  // This effect only stops any live tracks on unmount.
   useEffect(() => {
-    startCamera(facingMode);
     return () => {
-      stopCamera();
+      streamRef.current?.getTracks().forEach((track) => track.stop());
     };
   }, []);
 
@@ -339,8 +345,10 @@ export const TakePhotoScreen: React.FC<TakePhotoScreenProps> = ({
               <button
                 onClick={() => {
                   playTapTone('tap');
-                  if (cameraInputRef.current) {
-                    cameraInputRef.current.click();
+                  // Prefer the live in-app camera; fall back to the device's
+                  // native camera input when the stream is blocked/unsupported.
+                  if (cameraError || typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+                    cameraInputRef.current?.click();
                   } else {
                     startCamera(facingMode);
                   }
