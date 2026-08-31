@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Language, ProductProfile, SellingChannel, UserProfile } from './types';
+import { BuyerInquiry, Language, ProductProfile, SellingChannel, UserProfile } from './types';
 import { SAMPLE_PRODUCTS, DEMO_PHOTO_OPTIONS } from './data/sampleProducts';
 import { DEMO_BUYERS } from './data/buyers';
 import { registerSpeakingListener, stopSpeech, playTapTone, speakText } from './utils/audio';
@@ -20,9 +20,12 @@ import { HelpScreen } from './components/HelpScreen';
 import { SellerProfileModal } from './components/SellerProfileModal';
 import { ChannelExportModal } from './components/ChannelExportModal';
 import { ProductEditModal } from './components/ProductEditModal';
+import { BuyerEditModal } from './components/BuyerEditModal';
+import { IntroSplash } from './components/IntroSplash';
 
 const PRODUCTS_STORAGE_KEY = 'craft2cart.products';
 const PROFILE_STORAGE_KEY = 'craft2cart.profile';
+const BUYERS_STORAGE_KEY = 'craft2cart.buyers';
 
 // Products survive page refreshes; falls back to the demo set when storage is
 // empty, unreadable, or the user deleted everything (never an empty first run).
@@ -32,6 +35,19 @@ const loadStoredProducts = (): ProductProfile[] | null => {
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) && parsed.length > 0 ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+// Unlike products, an empty buyer list is a legitimate saved state: the user
+// may have deleted every inquiry, and we must not resurrect the demo set.
+const loadStoredBuyers = (): BuyerInquiry[] | null => {
+  try {
+    const raw = localStorage.getItem(BUYERS_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : null;
   } catch {
     return null;
   }
@@ -53,11 +69,12 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'home' | 'products' | 'sell' | 'buyers' | 'help'>('home');
   const [currentLang, setCurrentLang] = useState<Language>('en');
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [showIntro, setShowIntro] = useState(true);
 
   // Products & Buyers State
   const [products, setProducts] = useState<ProductProfile[]>(initialProducts);
   const [currentProduct, setCurrentProduct] = useState<ProductProfile>(initialProducts[0]);
-  const [buyers] = useState(DEMO_BUYERS);
+  const [buyers, setBuyers] = useState<BuyerInquiry[]>(() => loadStoredBuyers() ?? DEMO_BUYERS);
 
   // Profile State
   const [userProfile, setUserProfile] = useState<UserProfile>(() => loadStoredProfile() ?? {
@@ -95,10 +112,12 @@ export default function App() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [selectedChannelExport, setSelectedChannelExport] = useState<SellingChannel['id'] | null>(null);
   const [productToEdit, setProductToEdit] = useState<ProductProfile | null>(null);
+  // null = closed. { buyer: null } = adding; { buyer } = editing that inquiry.
+  const [buyerEditor, setBuyerEditor] = useState<{ buyer: BuyerInquiry | null } | null>(null);
 
   // Lock background scrolling while any modal is open, so touch-dragging the
   // sheet on a phone doesn't scroll the page behind it.
-  const anyModalOpen = Boolean(productToEdit || showProfileModal || selectedChannelExport);
+  const anyModalOpen = Boolean(productToEdit || showProfileModal || selectedChannelExport || buyerEditor);
   useEffect(() => {
     if (!anyModalOpen) return;
     const previous = document.body.style.overflow;
@@ -118,6 +137,14 @@ export default function App() {
       /* storage unavailable or full */
     }
   }, [products]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(BUYERS_STORAGE_KEY, JSON.stringify(buyers));
+    } catch {
+      /* storage unavailable or full */
+    }
+  }, [buyers]);
 
   useEffect(() => {
     try {
@@ -234,6 +261,30 @@ export default function App() {
     );
   };
 
+  // Add or update a buyer inquiry. A matching id means an edit, otherwise the
+  // new inquiry goes to the top of the list where the user will look for it.
+  const handleSaveBuyer = (saved: BuyerInquiry) => {
+    stopSpeech();
+    const isExisting = buyers.some((b) => b.id === saved.id);
+    setBuyers((prev) => (isExisting ? prev.map((b) => (b.id === saved.id ? saved : b)) : [saved, ...prev]));
+    setBuyerEditor(null);
+    speakText(
+      currentLang === 'en'
+        ? isExisting
+          ? `${saved.name} details updated successfully!`
+          : `${saved.name} added to your buyers.`
+        : isExisting
+          ? `${saved.name} விவரங்கள் புதுப்பிக்கப்பட்டன!`
+          : `${saved.name} வாங்குபவர் பட்டியலில் சேர்க்கப்பட்டார்.`,
+      currentLang
+    );
+  };
+
+  const handleDeleteBuyer = (buyerId: string) => {
+    stopSpeech();
+    setBuyers((prev) => prev.filter((b) => b.id !== buyerId));
+  };
+
   // Update Profile Handler
   const handleUpdateProfile = (updated: UserProfile) => {
     setUserProfile(updated);
@@ -269,8 +320,17 @@ export default function App() {
     }
   };
 
+  // Remounting the content area on every screen change replays the one-shot
+  // enter animation. The sell flow keys on its step too, so each question in
+  // the voice flow gets the same gentle arrival as a tab switch.
+  const screenKey = activeTab === 'sell' ? `sell:${sellStep}` : activeTab;
+
+  // overflow-x-clip (not -hidden) so this shell never becomes a scroll
+  // container and swallows the page's vertical scrolling. select-none is
+  // deliberately absent: it blocked caret placement inside the edit forms in
+  // some Android WebViews.
   return (
-    <div className="min-h-[100svh] w-full overflow-x-hidden bg-[#f9f9f6] text-[#1a1c1b] flex flex-col font-['Public_Sans'] select-none">
+    <div className="min-h-[100svh] w-full overflow-x-clip bg-[#f9f9f6] text-[#1a1c1b] flex flex-col font-['Public_Sans']">
       {/* Top Header Bar */}
       <TopAppBar
         currentLang={currentLang}
@@ -288,7 +348,8 @@ export default function App() {
       {/* Padding reserves the fixed header, the fixed bottom nav, and the
           device's notch/gesture-bar insets — see --app-* vars in index.css. */}
       <div
-        className="flex-1 w-full max-w-6xl mx-auto flex flex-col min-w-0"
+        key={screenKey}
+        className="animate-enter flex-1 w-full max-w-6xl mx-auto flex flex-col min-w-0"
         style={{
           paddingLeft: 'max(1rem, var(--safe-left))',
           paddingRight: 'max(1rem, var(--safe-right))',
@@ -397,6 +458,9 @@ export default function App() {
           <BuyersScreen
             buyers={buyers}
             lang={currentLang}
+            onAddBuyer={() => setBuyerEditor({ buyer: null })}
+            onEditBuyer={(buyer) => setBuyerEditor({ buyer })}
+            onDeleteBuyer={handleDeleteBuyer}
           />
         )}
 
@@ -412,6 +476,17 @@ export default function App() {
           lang={currentLang}
           onSave={handleSaveEditedProduct}
           onClose={() => setProductToEdit(null)}
+        />
+      )}
+
+      {/* Buyer Add / Edit Modal */}
+      {buyerEditor && (
+        <BuyerEditModal
+          buyer={buyerEditor.buyer}
+          products={products}
+          lang={currentLang}
+          onSave={handleSaveBuyer}
+          onClose={() => setBuyerEditor(null)}
         />
       )}
 
@@ -434,6 +509,10 @@ export default function App() {
           onClose={() => setSelectedChannelExport(null)}
         />
       )}
+
+      {/* Intro splash. Rendered over an app that is already mounted and
+          interactive, so it delays nothing. */}
+      {showIntro && <IntroSplash lang={currentLang} onDone={() => setShowIntro(false)} />}
 
       {/* Persistent Bottom Navigation */}
       <BottomNavBar

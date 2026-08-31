@@ -312,7 +312,7 @@ export const SellerProfileModal: React.FC<SellerProfileModalProps> = ({
                 </span>
                 <div>
                   <span className="text-[#78716c] block text-[10px] font-bold uppercase">Pehchan Artisan ID</span>
-                  <span className="font-mono font-bold text-[#1a1c1b]">{profile.pehchanId || 'TN-MDU-2023-8821'}</span>
+                  <span className="font-mono font-bold text-[#1a1c1b] break-anywhere">{profile.pehchanId || 'TN-MDU-2023-8821'}</span>
                 </div>
               </div>
 
@@ -322,7 +322,7 @@ export const SellerProfileModal: React.FC<SellerProfileModalProps> = ({
                 </span>
                 <div>
                   <span className="text-[#78716c] block text-[10px] font-bold uppercase">UPI ID for Direct Payouts</span>
-                  <span className="font-mono font-bold text-[#1a1c1b]">{profile.upiId || 'lakshmi.artisan@upi'}</span>
+                  <span className="font-mono font-bold text-[#1a1c1b] break-anywhere">{profile.upiId || 'lakshmi.artisan@upi'}</span>
                 </div>
               </div>
 

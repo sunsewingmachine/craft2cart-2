@@ -34,7 +34,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   return (
     <main className="w-full max-w-xl mx-auto flex flex-col gap-5 py-4">
       {/* Welcome Section with Audio Assist */}
-      <section className="bg-[#ffffff] p-5 sm:p-6 rounded-2xl border border-[#e8e5df] shadow-sm flex items-center justify-between gap-4">
+      <section
+        className="stagger-item bg-[#ffffff] p-5 sm:p-6 rounded-2xl border border-[#e8e5df] shadow-sm flex items-center justify-between gap-4"
+        style={{ '--stagger-index': 0 } as React.CSSProperties}
+      >
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <h2 className="font-['Source_Serif_4',serif] text-2xl sm:text-3xl font-bold text-[#1a1c1b] tracking-tight">
@@ -63,7 +66,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       </section>
 
       {/* Primary Hero Action: SELL A PRODUCT */}
-      <section>
+      <section className="stagger-item" style={{ '--stagger-index': 1 } as React.CSSProperties}>
         <button
           onClick={() => {
             playTapTone('tap');
@@ -86,7 +89,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       </section>
 
       {/* Secondary Actions Grid */}
-      <section className="grid grid-cols-2 gap-3 sm:gap-4">
+      <section
+        className="stagger-item grid grid-cols-2 gap-3 sm:gap-4"
+        style={{ '--stagger-index': 2 } as React.CSSProperties}
+      >
         {/* My Products */}
         <button
           onClick={() => {
@@ -133,7 +139,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           playTapTone('tap');
           onViewBuyers();
         }}
-        className="bg-[#ffffff] rounded-2xl p-4 border border-[#e8e5df] shadow-sm flex items-center gap-3.5 cursor-pointer hover:bg-[#faf9f5] transition-colors"
+        className="stagger-item bg-[#ffffff] rounded-2xl p-4 border border-[#e8e5df] shadow-sm flex items-center gap-3.5 cursor-pointer hover:bg-[#faf9f5] transition-colors"
+        style={{ '--stagger-index': 3 } as React.CSSProperties}
       >
         <div className="w-10 h-10 rounded-full bg-[#ffdbcd]/50 flex items-center justify-center shrink-0 text-[#9f3e07]">
           <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
@@ -154,7 +161,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       </section>
 
       {/* Craft2Cart Value Banner */}
-      <section className="bg-[#f5f4ef] rounded-2xl p-3.5 sm:p-4 border border-[#e8e5df] flex items-center gap-3 text-xs sm:text-sm text-[#57423a]">
+      <section
+        className="stagger-item bg-[#f5f4ef] rounded-2xl p-3.5 sm:p-4 border border-[#e8e5df] flex items-center gap-3 text-xs sm:text-sm text-[#57423a]"
+        style={{ '--stagger-index': 4 } as React.CSSProperties}
+      >
         <span className="material-symbols-outlined text-[#9f3e07] text-2xl shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>
           verified
         </span>

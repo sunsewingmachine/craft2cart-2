@@ -173,17 +173,35 @@ html {
 
 html,
 body {
-  /* A single stray wide child must never scroll the whole page sideways. */
   max-width: 100%;
-  overflow-x: hidden;
-  overscroll-behavior-y: none;
 }
 
-/* Long unbroken strings (UPI ids, URLs, IDs, Tamil compounds) must wrap
-   rather than force the card wider than the viewport. */
+/* A stray wide child must never scroll the page sideways -- but it must not
+   cost us vertical scrolling either. `overflow-x: hidden` on html/body makes
+   both elements scroll containers (the other axis computes to `auto`), which
+   is what froze vertical scrolling inside Android WebViews and in-app
+   browsers. `clip` trims the same overflow WITHOUT creating a scroll
+   container, so the document keeps scrolling normally. */
 body {
+  overflow-x: clip;
+}
+
+/* Sensible wrapping: break only where a word genuinely cannot fit. Using
+   `anywhere` / `word-break: break-word` globally split prices ("29,00 0")
+   and button labels ("WhatsAp p") mid-token on narrow phones. */
+body {
+  overflow-wrap: break-word;
+}
+
+/* Opt-in for genuinely unbreakable strings: UPI ids, URLs, reference ids. */
+.break-anywhere {
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+/* Amounts, counts and short labels should move as one unit, never wrap. */
+.nowrap {
+  white-space: nowrap;
 }
 
 /* Media never exceeds its container. */
@@ -251,6 +269,121 @@ textarea {
   animation: fade-in 0.2s ease-out;
 }
 
+/* Used by the delete-confirmation dialog; was referenced but never defined. */
+@keyframes scale-up {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-scale-up {
+  animation: scale-up 0.18s ease-out;
+}
+
+/* ---------------------------------------------------------------
+   Motion kit
+   Deliberately restrained: short, one-shot, transform+opacity only
+   (never layout properties), and nothing that delays a tap. Every
+   animation below is switched off by the reduced-motion block at the
+   end of this file.
+   --------------------------------------------------------------- */
+
+/* Screens and cards arrive with a small rise. 10px is enough to read as
+   movement without the content visibly jumping into place. */
+@keyframes enter-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-enter {
+  animation: enter-rise 0.34s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+/* List items trail the screen by a hair. --stagger-index is set inline per
+   card; the 6-step cap keeps a long catalog from crawling in for seconds. */
+.stagger-item {
+  animation: enter-rise 0.34s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  animation-delay: calc(min(var(--stagger-index, 0), 6) * 55ms);
+}
+
+/* Intro splash -------------------------------------------------- */
+
+@keyframes splash-mark-in {
+  from {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+  60% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes splash-text-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* A single sweep across the mark - one pass, not a loop, so it reads as
+   "ready" rather than "still loading". */
+@keyframes splash-sheen {
+  from {
+    transform: translate3d(-140%, 0, 0);
+  }
+  to {
+    transform: translate3d(140%, 0, 0);
+  }
+}
+
+@keyframes splash-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+.splash-mark {
+  animation: splash-mark-in 0.5s cubic-bezier(0.34, 1.28, 0.64, 1) both;
+}
+
+.splash-sheen {
+  animation: splash-sheen 0.9s ease-in-out 0.35s both;
+}
+
+.splash-title {
+  animation: splash-text-in 0.42s cubic-bezier(0.22, 0.61, 0.36, 1) 0.14s both;
+}
+
+.splash-tagline {
+  animation: splash-text-in 0.42s cubic-bezier(0.22, 0.61, 0.36, 1) 0.26s both;
+}
+
+/* No pointer-events:none here on purpose - the overlay keeps swallowing input
+   for the length of the fade so the tap that dismissed it cannot fall through
+   and trigger a button on the screen underneath. */
+.splash-leaving {
+  animation: splash-fade-out 0.42s ease-in forwards;
+}
+
 /* Respect users who ask for less motion. */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -263,6 +396,27 @@ textarea {
   }
 
   .mic-pulse {
+    animation: none;
+  }
+
+  .animate-fade-in,
+  .animate-scale-up,
+  .animate-enter,
+  .stagger-item,
+  .splash-mark,
+  .splash-title,
+  .splash-tagline {
+    animation: none;
+  }
+
+  /* The sheen is pure decoration - remove it rather than snap it. */
+  .splash-sheen {
+    display: none;
+  }
+
+  /* The splash still needs to disappear, just without the crossfade. */
+  .splash-leaving {
+    opacity: 0;
     animation: none;
   }
 }

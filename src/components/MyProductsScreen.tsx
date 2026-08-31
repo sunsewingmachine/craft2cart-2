@@ -127,10 +127,11 @@ export const MyProductsScreen: React.FC<MyProductsScreenProps> = ({
       ) : (
         /* Product List Cards */
         <div className="flex flex-col gap-5">
-          {products.map((prod) => (
+          {products.map((prod, index) => (
             <div
               key={prod.id}
-              className="bg-[#ffffff] rounded-2xl shadow-sm overflow-hidden flex flex-col border border-[#e8e5df] hover:border-[#9f3e07]/50 transition-all group relative"
+              className="stagger-item bg-[#ffffff] rounded-2xl shadow-sm overflow-hidden flex flex-col border border-[#e8e5df] hover:border-[#9f3e07]/50 transition-all group relative"
+              style={{ '--stagger-index': index } as React.CSSProperties}
             >
               {/* Product Image Area */}
               <div
