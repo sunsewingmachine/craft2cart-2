@@ -144,15 +144,17 @@
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
 
-  /* Chrome heights the app layout reserves space for. */
+  /* Chrome heights the app layout reserves space for. The nav is tall enough
+     for two lines, since Tamil labels ("வாங்குபவர்கள்") wrap where English
+     ("Buyers") does not. */
   --app-header-h: 56px;
-  --app-nav-h: 64px;
+  --app-nav-h: 74px;
 }
 
 @media (min-width: 640px) {
   :root {
     --app-header-h: 64px;
-    --app-nav-h: 68px;
+    --app-nav-h: 74px;
   }
 }
 

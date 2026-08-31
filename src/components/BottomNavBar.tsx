@@ -15,6 +15,11 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
 }) => {
   const t = getTranslation(lang);
 
+  // In 'both' mode getTranslation returns "தமிழ் · English". Five of those
+  // never fit a phone nav bar, so the tab strip keeps only the leading
+  // (Tamil) half - the primary language for these users.
+  const short = (label: string) => label.split('·')[0].trim();
+
   const tabs = [
     { id: 'home', label: t.home, icon: 'home' },
     { id: 'products', label: t.products, icon: 'storefront' },
@@ -56,8 +61,8 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
               >
                 {tab.icon}
               </span>
-              <span className="w-full text-[10px] xs:text-[11px] leading-tight font-medium tracking-tight text-center line-clamp-1 break-normal">
-                {tab.label}
+              <span className="w-full text-[10px] xs:text-[11px] leading-[1.15] font-medium tracking-tight text-center line-clamp-2 hyphens-none">
+                {short(tab.label)}
               </span>
             </button>
           );

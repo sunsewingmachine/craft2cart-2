@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Language, UserProfile } from '../types';
 import { speakText, playTapTone } from '../utils/audio';
 import { bi, speechFor } from '../data/translations';
+import { fileToSquareDataUrl, isUploadedPhoto } from '../utils/image';
 
 interface SellerProfileModalProps {
   lang: Language;
@@ -31,6 +32,12 @@ export const SellerProfileModal: React.FC<SellerProfileModalProps> = ({
   const [isPlayingStory, setIsPlayingStory] = useState(false);
   const [savedToast, setSavedToast] = useState(false);
 
+  // Profile photo upload
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  const galleryInputRef = useRef<HTMLInputElement | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
+
   // Form State
   const [name, setName] = useState(profile.name);
   const [location, setLocation] = useState(profile.location);
@@ -41,6 +48,50 @@ export const SellerProfileModal: React.FC<SellerProfileModalProps> = ({
   const [upiId, setUpiId] = useState(profile.upiId || 'lakshmi.artisan@upi');
   const [story, setStory] = useState(profile.story);
   const [avatar, setAvatar] = useState(profile.avatar);
+
+  // Read a picked photo, shrink it to a square, and show it as the avatar.
+  // Picking from the view mode saves straight away so a photo is never lost
+  // just because the artisan closed the sheet without tapping Save.
+  const handlePhotoPicked = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // Allow re-picking the same file right after an error.
+    e.target.value = '';
+    if (!file) return;
+
+    setPhotoError(null);
+    setIsProcessingPhoto(true);
+    try {
+      const dataUrl = await fileToSquareDataUrl(file);
+      playTapTone('success');
+      setAvatar(dataUrl);
+      if (!isEditing) {
+        onUpdateProfile({ ...profile, avatar: dataUrl, heroPhoto: dataUrl });
+        setSavedToast(true);
+        setTimeout(() => setSavedToast(false), 3000);
+      }
+      speakText(
+        speechFor(lang, 'Profile photo updated!', 'சுயவிவர புகைப்படம் புதுப்பிக்கப்பட்டது!'),
+        lang
+      );
+    } catch (err: any) {
+      const reason = err?.message;
+      setPhotoError(
+        reason === 'not-image'
+          ? bi('படக் கோப்பைத் தேர்ந்தெடுக்கவும்', 'Please choose an image file', lang)
+          : reason === 'too-large'
+          ? bi('படம் மிகப் பெரியது (அதிகபட்சம் 12MB)', 'Photo is too large (max 12MB)', lang)
+          : bi('படத்தைப் படிக்க முடியவில்லை', 'Could not read that photo', lang)
+      );
+    } finally {
+      setIsProcessingPhoto(false);
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    playTapTone('tap');
+    setPhotoError(null);
+    setAvatar(AVATAR_OPTIONS[0].url);
+  };
 
   const handlePlayStory = () => {
     playTapTone('tap');
@@ -119,6 +170,23 @@ export const SellerProfileModal: React.FC<SellerProfileModalProps> = ({
       }}
     >
       <div className="bg-[#f9f9f6] text-[#1a1c1b] rounded-3xl w-full max-w-2xl shadow-2xl border border-[#e8e5df] p-4 sm:p-8 my-auto relative flex flex-col gap-6">
+
+        {/* Hidden photo pickers — shared by view mode and edit mode */}
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="user"
+          className="hidden"
+          onChange={handlePhotoPicked}
+        />
+        <input
+          ref={galleryInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handlePhotoPicked}
+        />
         
         {/* Toast */}
         {savedToast && (
@@ -167,12 +235,30 @@ export const SellerProfileModal: React.FC<SellerProfileModalProps> = ({
           <div className="flex flex-col gap-6">
             {/* Profile Header */}
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
-              <div className="relative w-32 h-32 sm:w-36 sm:h-36 rounded-full overflow-hidden border-4 border-[#ffdbcd] shadow-md bg-[#f2f0eb] shrink-0">
-                <img
-                  src={profile.avatar}
-                  alt={profile.name}
-                  className="w-full h-full object-cover"
-                />
+              <div className="relative w-32 h-32 sm:w-36 sm:h-36 shrink-0">
+                <div className="w-full h-full rounded-full overflow-hidden border-4 border-[#ffdbcd] shadow-md bg-[#f2f0eb]">
+                  <img
+                    src={profile.avatar}
+                    alt={profile.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    playTapTone('tap');
+                    galleryInputRef.current?.click();
+                  }}
+                  disabled={isProcessingPhoto}
+                  aria-label={bi('புகைப்படத்தை மாற்று', 'Change profile photo', lang)}
+                  title={bi('புகைப்படத்தை மாற்று', 'Change profile photo', lang)}
+                  className="absolute bottom-1 right-1 w-11 h-11 rounded-full bg-[#9f3e07] hover:bg-[#c05621] text-white flex items-center justify-center border-4 border-[#f9f9f6] shadow-md active:scale-95 transition-all disabled:opacity-60"
+                >
+                  <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                    {isProcessingPhoto ? 'hourglass_top' : 'photo_camera'}
+                  </span>
+                </button>
               </div>
 
               <div className="flex flex-col items-center sm:items-start text-center sm:text-left flex-1 gap-2">
@@ -337,24 +423,86 @@ export const SellerProfileModal: React.FC<SellerProfileModalProps> = ({
                 <img
                   src={avatar}
                   alt={name}
-                  className="w-16 h-16 rounded-full object-cover border-2 border-[#9f3e07]"
+                  className="w-20 h-20 rounded-full object-cover border-2 border-[#9f3e07] shrink-0"
                 />
-                <div className="flex gap-2">
-                  {AVATAR_OPTIONS.map((opt, i) => (
+
+                <div className="flex flex-col gap-2 flex-1 min-w-0">
+                  {/* Upload from the phone camera or the gallery */}
+                  <div className="flex flex-wrap gap-2">
                     <button
-                      key={i}
                       type="button"
                       onClick={() => {
                         playTapTone('tap');
-                        setAvatar(opt.url);
+                        cameraInputRef.current?.click();
                       }}
-                      className={`w-12 h-12 rounded-full overflow-hidden border-2 transition-all ${
-                        avatar === opt.url ? 'border-[#9f3e07] ring-2 ring-[#ffdbcd]' : 'opacity-60 hover:opacity-100'
-                      }`}
+                      disabled={isProcessingPhoto}
+                      className="flex-1 min-w-[8rem] bg-[#9f3e07] hover:bg-[#c05621] text-white py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs active:scale-95 transition-all disabled:opacity-60"
                     >
-                      <img src={opt.url} alt={opt.label} className="w-full h-full object-cover" />
+                      <span className="material-symbols-outlined text-base">photo_camera</span>
+                      <span>{bi('புகைப்படம் எடு', 'Take Photo', lang)}</span>
                     </button>
-                  ))}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        playTapTone('tap');
+                        galleryInputRef.current?.click();
+                      }}
+                      disabled={isProcessingPhoto}
+                      className="flex-1 min-w-[8rem] bg-[#ffffff] border-2 border-[#9f3e07] text-[#9f3e07] hover:bg-[#fff9f6] py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all disabled:opacity-60"
+                    >
+                      <span className="material-symbols-outlined text-base">photo_library</span>
+                      <span>{bi('படத்தை பதிவேற்று', 'Upload Photo', lang)}</span>
+                    </button>
+
+                    {isUploadedPhoto(avatar) && (
+                      <button
+                        type="button"
+                        onClick={handleRemovePhoto}
+                        className="bg-[#f4f4f1] hover:bg-[#e8e5df] text-[#57423a] py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border border-[#e8e5df] active:scale-95 transition-all"
+                      >
+                        <span className="material-symbols-outlined text-base">delete</span>
+                        <span>{bi('நீக்கு', 'Remove', lang)}</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {isProcessingPhoto && (
+                    <p className="text-[11px] font-semibold text-[#57423a]">
+                      {bi('படம் தயாராகிறது…', 'Preparing photo…', lang)}
+                    </p>
+                  )}
+
+                  {photoError && (
+                    <p className="text-[11px] font-bold text-[#b3261e] flex items-center gap-1">
+                      <span className="material-symbols-outlined text-sm">error</span>
+                      <span>{photoError}</span>
+                    </p>
+                  )}
+
+                  {/* Preset avatars stay available as a quick fallback */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-[#78716c] uppercase tracking-wider">
+                      {bi('அல்லது', 'Or pick', lang)}
+                    </span>
+                    {AVATAR_OPTIONS.map((opt, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => {
+                          playTapTone('tap');
+                          setPhotoError(null);
+                          setAvatar(opt.url);
+                        }}
+                        title={opt.label}
+                        className={`w-10 h-10 rounded-full overflow-hidden border-2 transition-all ${
+                          avatar === opt.url ? 'border-[#9f3e07] ring-2 ring-[#ffdbcd]' : 'border-transparent opacity-60 hover:opacity-100'
+                        }`}
+                      >
+                        <img src={opt.url} alt={opt.label} className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

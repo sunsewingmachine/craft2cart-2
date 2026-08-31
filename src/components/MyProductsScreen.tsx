@@ -69,7 +69,10 @@ export const MyProductsScreen: React.FC<MyProductsScreenProps> = ({
     <main className="w-full max-w-xl mx-auto flex-1 flex flex-col py-2 gap-4">
       {/* Toast Notification */}
       {deletedToast && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-[#1a1c1b] text-white px-4 py-2.5 rounded-full shadow-lg text-xs sm:text-sm font-semibold flex items-center gap-2 animate-fade-in border border-white/10">
+        <div
+          className="fixed left-1/2 -translate-x-1/2 z-50 max-w-[calc(100vw-2rem)] bg-[#1a1c1b] text-white px-4 py-2.5 rounded-full shadow-lg text-xs sm:text-sm font-semibold flex items-center gap-2 animate-fade-in border border-white/10"
+          style={{ top: 'calc(var(--app-header-h) + var(--safe-top) + 0.75rem)' }}
+        >
           <span className="material-symbols-outlined text-red-400 text-lg">delete</span>
           <span>{bi('நீக்கப்பட்டது', 'Deleted', lang)}: <strong>{deletedToast}</strong></span>
         </div>
@@ -243,7 +246,7 @@ export const MyProductsScreen: React.FC<MyProductsScreenProps> = ({
                     }}
                     title={`Delete ${prod.name}`}
                     aria-label={`Delete ${prod.name}`}
-                    className="w-9 h-9 rounded-xl bg-[#f4f4f1] hover:bg-[#ffdad6] text-[#555f71] hover:text-[#ba1a1a] flex items-center justify-center transition-colors active:scale-90 border border-[#e8e5df] shrink-0"
+                    className="w-11 h-11 rounded-xl bg-[#f4f4f1] hover:bg-[#ffdad6] text-[#555f71] hover:text-[#ba1a1a] flex items-center justify-center transition-colors active:scale-90 border border-[#e8e5df] shrink-0"
                   >
                     <span className="material-symbols-outlined text-lg">delete</span>
                   </button>
