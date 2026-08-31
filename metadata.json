@@ -1,0 +1,11 @@
+{
+  "name": "Craft2Cart",
+  "description": "Voice-first selling assistant for artisans. Speak once, sell everywhere across WhatsApp, ONDC, Amazon, Flipkart, GeM, and government craft fairs.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
