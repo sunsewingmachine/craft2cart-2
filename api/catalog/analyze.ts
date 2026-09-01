@@ -1,4 +1,4 @@
-import { analyzePhotoResult } from '../../server/catalogHandlers';
+import { analyzePhotoResult } from '../../server/catalogHandlers.js';
 
 // Photo in, draft listing out — the production twin of the Express route in
 // server/catalogRoutes.ts. See api/health.ts for why both exist.

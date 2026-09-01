@@ -1,4 +1,4 @@
-import { catalogStatusResult } from '../../server/catalogHandlers';
+import { catalogStatusResult } from '../../server/catalogHandlers.js';
 
 // Whether Gemini is configured on this deployment, and which model answered
 // last. See api/health.ts for why the /api surface exists twice.

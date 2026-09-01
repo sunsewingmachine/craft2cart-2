@@ -1,4 +1,4 @@
-import { generateCatalogDraft, geminiModelName, isGeminiConfigured } from './gemini';
+import { generateCatalogDraft, geminiModelName, isGeminiConfigured } from './gemini.js';
 
 // Transport-free core of the catalog API: status in, status + JSON body out.
 // It exists because the app is served two different ways — Express locally
@@ -6,6 +6,11 @@ import { generateCatalogDraft, geminiModelName, isGeminiConfigured } from './gem
 // rules about what a valid photo is, how big it may be, and what a failure
 // looks like must be the same in both. Each transport is a five-line wrapper
 // around these functions; nothing about parsing or Gemini lives in them.
+//
+// Imports across this boundary carry an explicit .js extension. Vercel compiles
+// api/**.ts to ESM and copies the traced files without rewriting specifiers, so
+// an extensionless import that tsx and esbuild both resolve happily dies at
+// runtime with ERR_MODULE_NOT_FOUND — a 500 on the very first request.
 
 export interface ApiResult {
   status: number;

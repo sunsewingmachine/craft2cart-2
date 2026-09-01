@@ -1,4 +1,4 @@
-import { healthResult } from '../server/catalogHandlers';
+import { healthResult } from '../server/catalogHandlers.js';
 
 // Vercel serverless transport. In production the app is a static Vite bundle on
 // Vercel's CDN, so Express never runs and these files are the only thing serving
