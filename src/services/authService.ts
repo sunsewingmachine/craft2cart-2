@@ -33,6 +33,7 @@ export type AuthErrorCode =
   | 'popup-closed'
   | 'provider-disabled'
   | 'sms-region-blocked'
+  | 'stale-verification'
   | 'invalid-phone'
   | 'invalid-code'
   | 'too-many-requests'
@@ -74,6 +75,11 @@ function classify(err: unknown): AuthError {
   }
   if (code.includes('operation-not-allowed') || code.includes('admin-restricted')) {
     return new AuthError('provider-disabled', message);
+  }
+  // A spent or mismatched reCAPTCHA token. Recoverable: the next attempt builds
+  // a fresh verifier, so the user only has to press send again.
+  if (code.includes('invalid-app-credential') || /INVALID_APP_CREDENTIAL/i.test(message)) {
+    return new AuthError('stale-verification', message);
   }
   if (code.includes('invalid-phone-number') || code.includes('missing-phone-number')) {
     return new AuthError('invalid-phone', message);
@@ -136,6 +142,12 @@ export function resetPhoneVerifier(): void {
 /**
  * Send an OTP. `containerId` is the id of an empty div that Firebase anchors
  * its invisible reCAPTCHA to. Returns a handle used to confirm the code.
+ *
+ * A reCAPTCHA token is SINGLE USE. Reusing one verifier across attempts replays
+ * a token Firebase has already consumed, and the server answers 400
+ * INVALID_APP_CREDENTIAL — which reads like a configuration fault but is really
+ * a stale token. So every send builds a fresh verifier and disposes of it
+ * afterwards, whether it succeeded or not.
  */
 export async function startPhoneSignIn(
   phoneE164: string,
@@ -148,16 +160,17 @@ export async function startPhoneSignIn(
     throw new AuthError('invalid-phone', 'Phone number must be in +country-code format.');
   }
 
+  resetPhoneVerifier();
+
   try {
-    if (!recaptcha) {
-      recaptcha = new RecaptchaVerifier(auth, containerId, { size: 'invisible' });
-      await recaptcha.render();
-    }
+    recaptcha = new RecaptchaVerifier(auth, containerId, { size: 'invisible' });
+    await recaptcha.render();
     return await signInWithPhoneNumber(auth, phoneE164, recaptcha);
   } catch (err) {
-    // A failed attempt leaves the widget in a state that rejects the next call.
-    resetPhoneVerifier();
     throw classify(err);
+  } finally {
+    // The token is spent either way; the next send starts from a clean widget.
+    resetPhoneVerifier();
   }
 }
 

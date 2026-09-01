@@ -60,6 +60,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ lang, onLanguageChange
           'SMS is not allowed for this region yet. Please sign in with Google instead.',
           lang
         );
+      case 'stale-verification':
+        return bi(
+          'சரிபார்ப்பு காலாவதியானது. மீண்டும் "குறியீட்டை அனுப்பு" அழுத்தவும்.',
+          'That verification expired. Please press "Send code" once more.',
+          lang
+        );
       case 'popup-blocked':
         return bi(
           'உங்கள் உலாவி பாப்-அப்பைத் தடுத்தது. அனுமதித்து மீண்டும் முயற்சிக்கவும்.',
