@@ -161,8 +161,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ lang, onLanguageChange
     }
   };
 
-  const phoneDigits = phone.replace(/\D/g, '');
-  const canSendCode = phoneDigits.length >= 10 && !busy;
+  // Judge the number after normalising, not as typed — a leading 0 or 91 is a
+  // dialling habit, so "098424 70497" is a complete number and must enable Send.
+  const canSendCode = toIndianE164(phone).length >= 13 && !busy;
   const canConfirm = code.replace(/\D/g, '').length >= 6 && !busy;
 
   return (
@@ -188,7 +189,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ lang, onLanguageChange
               className={`px-4 py-2.5 rounded-full text-base font-bold border-2 btn-press transition-colors ${
                 lang === option
                   ? 'bg-[#1a1c1b] text-white border-[#1a1c1b]'
-                  : 'bg-white text-[#57423a] border-[#e8e5df] hover:bg-[#f4f4f1]'
+                  : 'bg-[#e8e5df] text-[#57423a] border-[#e8e5df] hover:bg-[#dcd9d2]'
               }`}
             >
               {option === 'en' ? 'EN' : option === 'ta' ? 'தமிழ்' : 'த·EN'}
@@ -211,14 +212,40 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ lang, onLanguageChange
 
         {mode === 'choose' && (
           <div className="flex flex-col gap-4">
-            <p className="text-center text-lg font-bold text-[#1a1c1b] mb-1">
-              {bi('உள்நுழையவும்', 'Sign in to continue', lang)}
+            {/* Trying the app comes first. An artisan who is asked to sign in
+                before seeing anything usually closes the app instead. */}
+            <button
+              onClick={() => {
+                playTapTone('tap');
+                onSkip();
+              }}
+              disabled={busy}
+              className="w-full h-[68px] bg-[#57423a] hover:bg-[#43332c] text-white rounded-xl font-bold text-lg flex items-center justify-center gap-3 soft-shadow btn-press disabled:opacity-60"
+            >
+              <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                explore
+              </span>
+              <span>{bi('உள்நுழையாமல் செல்க', 'Go without Login', lang)}</span>
+            </button>
+
+            <p className="text-center text-base text-[#57423a] -mt-1">
+              {bi(
+                'உங்கள் பொருட்கள் இந்த மொபைலில் மட்டும் சேமிக்கப்படும்.',
+                'Your products stay on this device only.',
+                lang
+              )}
             </p>
+
+            <div className="flex items-center gap-3 my-1">
+              <span className="flex-1 h-px bg-[#e8e5df]" />
+              <span className="text-base font-bold text-[#57423a]">{bi('அல்லது', 'or', lang)}</span>
+              <span className="flex-1 h-px bg-[#e8e5df]" />
+            </div>
 
             <button
               onClick={handleGoogle}
               disabled={busy}
-              className="w-full h-[68px] bg-white border-2 border-[#e8e5df] hover:bg-[#f4f4f1] rounded-xl font-bold text-lg flex items-center justify-center gap-3 soft-shadow btn-press disabled:opacity-60"
+              className="w-full h-[68px] bg-[#e8e5df] hover:bg-[#dcd9d2] text-[#1a1c1b] rounded-xl font-bold text-lg flex items-center justify-center gap-3 soft-shadow btn-press disabled:opacity-60"
             >
               <span className="material-symbols-outlined text-2xl text-[#128752]">account_circle</span>
               <span>{bi('Google மூலம் உள்நுழைக', 'Continue with Google', lang)}</span>
@@ -368,24 +395,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ lang, onLanguageChange
         {/* Firebase anchors its invisible reCAPTCHA here. */}
         <div id={RECAPTCHA_CONTAINER_ID} />
 
-        <div className="mt-auto pt-8 text-center">
-          <button
-            onClick={() => {
-              playTapTone('tap');
-              onSkip();
-            }}
-            className="text-base font-bold text-[#57423a] underline underline-offset-4 btn-press"
-          >
-            {bi('உள்நுழையாமல் பார்வையிடு', 'Look around without signing in', lang)}
-          </button>
-          <p className="mt-2 text-sm text-[#57423a]">
-            {bi(
-              'உங்கள் பொருட்கள் இந்த மொபைலில் மட்டும் சேமிக்கப்படும்.',
-              'Your products stay on this device only.',
-              lang
-            )}
-          </p>
-        </div>
       </div>
     </div>
   );

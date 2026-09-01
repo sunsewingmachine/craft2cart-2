@@ -15,9 +15,9 @@ import { getFirebaseAuth, isFirebaseConfigured } from '../lib/firebase';
 //
 // Two ways in, both requested for the artisan audience: Google (one tap, works
 // on any device) and phone + OTP (many artisans have no email address).
-// Phone sign-in needs an invisible reCAPTCHA anchored to a real DOM node; that
-// verifier is created lazily and reused, because Firebase throws if two are
-// attached to the same element.
+// Phone sign-in needs an invisible reCAPTCHA anchored to a real DOM node. A
+// fresh verifier is built for every send and torn down afterwards, because its
+// token is single use — see startPhoneSignIn.
 
 export interface ArtisanAccount {
   uid: string;
@@ -193,10 +193,24 @@ export async function signOutArtisan(): Promise<void> {
   await signOut(auth);
 }
 
-/** Turn a typed Indian number into E.164, so the artisan can type just 10 digits. */
+/**
+ * Turn a typed Indian number into E.164, so the artisan can type it the way it
+ * is written on a visiting card.
+ *
+ * People write the same mobile number several ways: 9842470497, 098424 70497
+ * (0 is India's trunk prefix for dialling out of your own area), 0091..., 91...
+ * or +91.... Only the last one is E.164, and Firebase rejects everything else
+ * with a bare "invalid phone number", so the habits are stripped here rather
+ * than being pushed back at the person typing.
+ */
 export function toIndianE164(raw: string): string {
-  const digits = raw.replace(/\D/g, '');
-  if (raw.trim().startsWith('+')) return `+${digits}`;
+  let digits = raw.replace(/\D/g, '');
+
+  if (!raw.trim().startsWith('+')) {
+    if (digits.startsWith('00')) digits = digits.slice(2); // international prefix
+    else digits = digits.replace(/^0+/, ''); // STD trunk prefix
+  }
+
   if (digits.length === 10) return `+91${digits}`;
   if (digits.length === 12 && digits.startsWith('91')) return `+${digits}`;
   return `+${digits}`;
