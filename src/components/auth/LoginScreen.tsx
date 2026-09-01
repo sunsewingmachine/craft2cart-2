@@ -12,6 +12,7 @@ import {
   startPhoneSignIn,
   toIndianE164
 } from '../../services/authService';
+import { LanguageDialog, LanguageIconButton } from '../language/LanguageDialog';
 
 // The sign-in wall. Two doors, both asked for: Google for anyone with a phone
 // that is already signed in, and phone + OTP for artisans with no email.
@@ -41,6 +42,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ lang, onLanguageChange
   // away is the difference between fixing it and guessing at it.
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const [showDetail, setShowDetail] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
   const confirmationRef = useRef<ConfirmationResult | null>(null);
 
   // The verifier owns a DOM widget; leaving it behind breaks the next attempt.
@@ -170,48 +172,39 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ lang, onLanguageChange
     <div
       className="min-h-[100svh] w-full bg-[#f9f9f6] text-[#1a1c1b] flex flex-col items-center font-['Public_Sans']"
       style={{
-        paddingTop: 'calc(var(--safe-top) + 2rem)',
-        paddingBottom: 'calc(var(--safe-bottom) + 2rem)',
+        paddingTop: 'calc(var(--safe-top) + 1rem)',
+        paddingBottom: 'calc(var(--safe-bottom) + 1rem)',
         paddingLeft: 'max(1.25rem, var(--safe-left))',
         paddingRight: 'max(1.25rem, var(--safe-right))'
       }}
     >
-      <div className="w-full max-w-md flex-1 flex flex-col">
-        {/* Language switch first: an artisan who cannot read the page cannot log in. */}
-        <div className="w-full flex justify-center gap-2 mb-8">
-          {(['en', 'ta', 'both'] as Language[]).map((option) => (
-            <button
-              key={option}
-              onClick={() => {
-                playTapTone('tap');
-                onLanguageChange(option);
-              }}
-              className={`px-4 py-2.5 rounded-full text-base font-bold border-2 btn-press transition-colors ${
-                lang === option
-                  ? 'bg-[#1a1c1b] text-white border-[#1a1c1b]'
-                  : 'bg-[#e8e5df] text-[#57423a] border-[#e8e5df] hover:bg-[#dcd9d2]'
-              }`}
-            >
-              {option === 'en' ? 'EN' : option === 'ta' ? 'தமிழ்' : 'த·EN'}
-            </button>
-          ))}
+      <div className="w-full max-w-sm flex-1 flex flex-col">
+        {/* Language sits top right, out of the way of the sign-in choice, but
+            still reachable first: an artisan who cannot read the page cannot
+            log in. The full list opens in a dialog. */}
+        <div className="w-full flex justify-end mb-3">
+          <LanguageIconButton lang={lang} onClick={() => setLangOpen(true)} />
         </div>
 
+        {langOpen && (
+          <LanguageDialog lang={lang} onSelect={onLanguageChange} onClose={() => setLangOpen(false)} />
+        )}
+
         {/* Brand */}
-        <div className="text-center mb-8">
-          <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-[#128752] text-white flex items-center justify-center shadow-md">
-            <span className="material-symbols-outlined text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+        <div className="text-center mb-5">
+          <div className="w-16 h-16 mx-auto mb-3 rounded-2xl bg-[#128752] text-white flex items-center justify-center shadow-md">
+            <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>
               storefront
             </span>
           </div>
-          <h1 className="font-['Source_Serif_4',serif] text-4xl font-bold mb-2">Craft2Cart</h1>
-          <p className="text-lg text-[#57423a]">
+          <h1 className="font-['Source_Serif_4',serif] text-3xl font-bold mb-1">Craft2Cart</h1>
+          <p className="text-sm text-[#57423a]">
             {bi('ஒருமுறை பேசுங்கள். எங்கும் விற்கலாம்.', 'Speak once. Sell everywhere.', lang)}
           </p>
         </div>
 
         {mode === 'choose' && (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2.5">
             {/* Trying the app comes first. An artisan who is asked to sign in
                 before seeing anything usually closes the app instead. */}
             <button
@@ -220,15 +213,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ lang, onLanguageChange
                 onSkip();
               }}
               disabled={busy}
-              className="w-full h-[68px] bg-[#57423a] hover:bg-[#43332c] text-white rounded-xl font-bold text-lg flex items-center justify-center gap-3 soft-shadow btn-press disabled:opacity-60"
+              className="w-full h-[56px] bg-[#57423a] hover:bg-[#43332c] text-white rounded-xl font-bold text-base flex items-center justify-center gap-2.5 soft-shadow btn-press disabled:opacity-60"
             >
-              <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+              <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
                 explore
               </span>
               <span>{bi('உள்நுழையாமல் செல்க', 'Go without Login', lang)}</span>
             </button>
 
-            <p className="text-center text-base text-[#57423a] -mt-1">
+            <p className="text-center text-sm text-[#57423a] -mt-0.5">
               {bi(
                 'உங்கள் பொருட்கள் இந்த மொபைலில் மட்டும் சேமிக்கப்படும்.',
                 'Your products stay on this device only.',
@@ -236,19 +229,19 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ lang, onLanguageChange
               )}
             </p>
 
-            <div className="flex items-center gap-3 my-1">
+            <div className="flex items-center gap-3 my-0.5">
               <span className="flex-1 h-px bg-[#e8e5df]" />
-              <span className="text-base font-bold text-[#57423a]">{bi('அல்லது', 'or', lang)}</span>
+              <span className="text-sm font-bold text-[#57423a]">{bi('அல்லது', 'or', lang)}</span>
               <span className="flex-1 h-px bg-[#e8e5df]" />
             </div>
 
             <button
               onClick={handleGoogle}
               disabled={busy}
-              className="w-full h-[68px] bg-[#e8e5df] hover:bg-[#dcd9d2] text-[#1a1c1b] rounded-xl font-bold text-lg flex items-center justify-center gap-3 soft-shadow btn-press disabled:opacity-60"
+              className="w-full h-[56px] bg-[#0f766e] hover:bg-[#0c5f59] text-white rounded-xl font-bold text-base flex items-center justify-center gap-2.5 soft-shadow btn-press disabled:opacity-60"
             >
-              <span className="material-symbols-outlined text-2xl text-[#128752]">account_circle</span>
-              <span>{bi('Google மூலம் உள்நுழைக', 'Continue with Google', lang)}</span>
+              <span className="material-symbols-outlined text-xl">account_circle</span>
+              <span>{bi('Google மூலம் உள்நுழைக', 'Login with Google', lang)}</span>
             </button>
 
             <button
@@ -259,23 +252,23 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ lang, onLanguageChange
                 setMode('phone-number');
               }}
               disabled={busy}
-              className="w-full h-[68px] bg-[#128752] hover:bg-[#006c3f] text-white rounded-xl font-bold text-lg flex items-center justify-center gap-3 soft-shadow btn-press disabled:opacity-60"
+              className="w-full h-[56px] bg-[#128752] hover:bg-[#006c3f] text-white rounded-xl font-bold text-base flex items-center justify-center gap-2.5 soft-shadow btn-press disabled:opacity-60"
             >
-              <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+              <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
                 smartphone
               </span>
-              <span>{bi('மொபைல் எண் மூலம்', 'Use my mobile number', lang)}</span>
+              <span>{bi('மொபைல் மூலம் உள்நுழைக', 'Login with Mobile', lang)}</span>
             </button>
           </div>
         )}
 
         {mode === 'phone-number' && (
-          <div className="flex flex-col gap-4">
-            <label htmlFor="inputLoginPhoneNumber" className="text-lg font-bold">
+          <div className="flex flex-col gap-2.5">
+            <label htmlFor="inputLoginPhoneNumber" className="text-base font-bold">
               {bi('உங்கள் மொபைல் எண்', 'Your mobile number', lang)}
             </label>
             <div className="flex items-center gap-2">
-              <span className="h-[68px] px-4 flex items-center bg-[#e8e8e5] rounded-xl text-lg font-bold text-[#57423a]">
+              <span className="h-[56px] px-4 flex items-center bg-[#e8e8e5] rounded-xl text-lg font-bold text-[#57423a]">
                 +91
               </span>
               <input
@@ -286,10 +279,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ lang, onLanguageChange
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="98421 77340"
-                className="flex-1 min-w-0 h-[68px] bg-white border-2 border-[#e8e5df] focus:border-[#128752] rounded-xl px-4 text-xl font-bold tracking-wide focus:outline-none"
+                className="flex-1 min-w-0 h-[56px] bg-white border-2 border-[#e8e5df] focus:border-[#128752] rounded-xl px-4 text-lg font-bold tracking-wide focus:outline-none"
               />
             </div>
-            <p className="text-base text-[#57423a]">
+            <p className="text-sm text-[#57423a]">
               {bi(
                 'குறியீட்டுடன் ஒரு SMS அனுப்புவோம்.',
                 'We will send you an SMS with a code.',
@@ -300,9 +293,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ lang, onLanguageChange
             <button
               onClick={handleSendCode}
               disabled={!canSendCode}
-              className="w-full h-[68px] bg-[#128752] hover:bg-[#006c3f] text-white rounded-xl font-bold text-lg flex items-center justify-center gap-2 soft-shadow btn-press disabled:opacity-50"
+              className="w-full h-[56px] bg-[#128752] hover:bg-[#006c3f] text-white rounded-xl font-bold text-base flex items-center justify-center gap-2 soft-shadow btn-press disabled:opacity-50"
             >
-              <span className="material-symbols-outlined text-2xl">send</span>
+              <span className="material-symbols-outlined text-xl">send</span>
               <span>{busy ? bi('அனுப்புகிறோம்...', 'Sending...', lang) : bi('குறியீட்டை அனுப்பு', 'Send code', lang)}</span>
             </button>
 
@@ -313,7 +306,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ lang, onLanguageChange
     setErrorDetail(null);
                 setMode('choose');
               }}
-              className="w-full h-[60px] text-[#57423a] font-bold text-lg btn-press"
+              className="w-full h-[52px] text-[#57423a] font-bold text-base btn-press"
             >
               {bi('திரும்பு', 'Back', lang)}
             </button>
@@ -321,8 +314,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ lang, onLanguageChange
         )}
 
         {mode === 'phone-code' && (
-          <div className="flex flex-col gap-4">
-            <label htmlFor="inputLoginOtpCode" className="text-lg font-bold">
+          <div className="flex flex-col gap-2.5">
+            <label htmlFor="inputLoginOtpCode" className="text-base font-bold">
               {bi('SMS-ல் வந்த 6 இலக்க குறியீடு', 'The 6-digit code from your SMS', lang)}
             </label>
             <input
@@ -334,15 +327,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ lang, onLanguageChange
               value={code}
               onChange={(e) => setCode(e.target.value)}
               placeholder="000000"
-              className="w-full h-[76px] bg-white border-2 border-[#e8e5df] focus:border-[#128752] rounded-xl px-4 text-3xl font-bold text-center tracking-[0.4em] focus:outline-none"
+              className="w-full h-[64px] bg-white border-2 border-[#e8e5df] focus:border-[#128752] rounded-xl px-4 text-2xl font-bold text-center tracking-[0.4em] focus:outline-none"
             />
 
             <button
               onClick={handleConfirmCode}
               disabled={!canConfirm}
-              className="w-full h-[68px] bg-[#128752] hover:bg-[#006c3f] text-white rounded-xl font-bold text-lg flex items-center justify-center gap-2 soft-shadow btn-press disabled:opacity-50"
+              className="w-full h-[56px] bg-[#128752] hover:bg-[#006c3f] text-white rounded-xl font-bold text-base flex items-center justify-center gap-2 soft-shadow btn-press disabled:opacity-50"
             >
-              <span className="material-symbols-outlined text-2xl">check</span>
+              <span className="material-symbols-outlined text-xl">check</span>
               <span>{busy ? bi('சரிபார்க்கிறோம்...', 'Checking...', lang) : bi('உள்நுழை', 'Sign in', lang)}</span>
             </button>
 
@@ -355,7 +348,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ lang, onLanguageChange
                 resetPhoneVerifier();
                 setMode('phone-number');
               }}
-              className="w-full h-[60px] text-[#57423a] font-bold text-lg btn-press"
+              className="w-full h-[52px] text-[#57423a] font-bold text-base btn-press"
             >
               {bi('எண்ணை மாற்று', 'Change number', lang)}
             </button>

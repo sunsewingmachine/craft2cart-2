@@ -2,12 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Language } from '../types';
 import { stopSpeech, playTapTone } from '../utils/audio';
 import { getTranslation } from '../data/translations';
-
-const LANGUAGE_OPTIONS: { id: Language; short: string; label: string }[] = [
-  { id: 'en', short: 'EN', label: 'English' },
-  { id: 'ta', short: 'தமிழ்', label: 'தமிழ் (Tamil)' },
-  { id: 'both', short: 'த·EN', label: 'தமிழ் · English' }
-];
+import { LANGUAGE_OPTIONS } from './language/LanguageDialog';
 
 interface TopAppBarProps {
   currentLang: Language;
