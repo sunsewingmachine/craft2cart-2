@@ -222,11 +222,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ lang, onLanguageChange
             </button>
 
             <p className="text-center text-sm text-[#57423a] -mt-0.5">
-              {bi(
-                'உங்கள் பொருட்கள் இந்த மொபைலில் மட்டும் சேமிக்கப்படும்.',
-                'Your products stay on this device only.',
-                lang
-              )}
+              {bi('இந்த மொபைலில் மட்டும் சேமிப்பு.', 'Local Save only.', lang)}
             </p>
 
             <div className="flex items-center gap-3 my-0.5">
