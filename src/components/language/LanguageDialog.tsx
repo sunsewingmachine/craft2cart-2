@@ -5,8 +5,8 @@ import { playTapTone } from '../../utils/audio';
 // The language chooser as a dialog, plus the round icon that opens it. Kept as
 // its own component because the choice appears in more than one place (the sign-in
 // wall today, any full-screen flow later) and the option list must not drift.
-// Rows are deliberately large: this is the first thing an artisan touches, and
-// it has to work on a phone held at arm's length.
+// Rows are a normal control height — tappable on a phone, but not so large that
+// a three-item list fills the screen.
 
 export const LANGUAGE_OPTIONS: { id: Language; short: string; label: string }[] = [
   { id: 'en', short: 'EN', label: 'English' },
@@ -68,10 +68,10 @@ export const LanguageDialog: React.FC<LanguageDialogProps> = ({ lang, onSelect, 
         aria-modal="true"
         aria-label="Choose language"
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm rounded-3xl bg-[#f2f0eb] border border-[#e8e5df] shadow-xl p-4 flex flex-col gap-2.5"
+        className="w-full max-w-sm rounded-3xl bg-[#f2f0eb] border border-[#e8e5df] shadow-xl p-4 flex flex-col gap-2"
       >
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="font-['Public_Sans'] text-xl font-bold text-[#1a1c1b]">மொழி · Language</h2>
+        <div className="flex items-center justify-between gap-3 mb-1">
+          <h2 className="font-['Public_Sans'] text-base font-bold text-[#1a1c1b]">Language</h2>
           <button
             type="button"
             onClick={() => {
@@ -79,9 +79,9 @@ export const LanguageDialog: React.FC<LanguageDialogProps> = ({ lang, onSelect, 
               onClose();
             }}
             aria-label="Close"
-            className="w-11 h-11 shrink-0 rounded-full bg-[#e8e5df] hover:bg-[#dcd9d2] text-[#57423a] flex items-center justify-center btn-press"
+            className="w-8 h-8 shrink-0 rounded-full bg-[#e8e5df] hover:bg-[#dcd9d2] text-[#57423a] flex items-center justify-center btn-press"
           >
-            <span className="material-symbols-outlined text-2xl">close</span>
+            <span className="material-symbols-outlined text-lg">close</span>
           </button>
         </div>
 
@@ -96,15 +96,15 @@ export const LanguageDialog: React.FC<LanguageDialogProps> = ({ lang, onSelect, 
                 onSelect(option.id);
                 onClose();
               }}
-              className={`w-full h-[60px] px-4 rounded-2xl flex items-center justify-between gap-3 text-base font-bold btn-press transition-colors ${
+              className={`w-full h-[48px] px-3 rounded-xl flex items-center justify-between gap-2 text-sm font-bold btn-press transition-colors ${
                 isActive
                   ? 'bg-[#128752] text-white'
                   : 'bg-[#e8e5df] hover:bg-[#dcd9d2] text-[#1a1c1b]'
               }`}
             >
-              <span className="flex items-center gap-3 min-w-0">
+              <span className="flex items-center gap-2.5 min-w-0">
                 <span
-                  className={`w-16 shrink-0 text-center rounded-full py-1 text-base ${
+                  className={`w-14 shrink-0 text-center rounded-full py-0.5 text-xs ${
                     isActive ? 'bg-white/20' : 'bg-[#f2f0eb]'
                   }`}
                 >
@@ -114,7 +114,7 @@ export const LanguageDialog: React.FC<LanguageDialogProps> = ({ lang, onSelect, 
               </span>
               {isActive && (
                 <span
-                  className="material-symbols-outlined text-2xl shrink-0"
+                  className="material-symbols-outlined text-lg shrink-0"
                   style={{ fontVariationSettings: "'FILL' 1" }}
                 >
                   check_circle
