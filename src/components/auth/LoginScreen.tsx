@@ -49,6 +49,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ lang, onLanguageChange
           'This sign-in method is not switched on yet in Firebase.',
           lang
         );
+      case 'sms-region-blocked':
+        return bi(
+          'இந்தப் பகுதிக்கு SMS இன்னும் அனுமதிக்கப்படவில்லை. Google மூலம் உள்நுழையவும்.',
+          'SMS is not allowed for this region yet. Please sign in with Google instead.',
+          lang
+        );
       case 'popup-blocked':
         return bi(
           'உங்கள் உலாவி பாப்-அப்பைத் தடுத்தது. அனுமதித்து மீண்டும் முயற்சிக்கவும்.',

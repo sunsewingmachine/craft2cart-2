@@ -32,6 +32,7 @@ export type AuthErrorCode =
   | 'popup-blocked'
   | 'popup-closed'
   | 'provider-disabled'
+  | 'sms-region-blocked'
   | 'invalid-phone'
   | 'invalid-code'
   | 'too-many-requests'
@@ -62,6 +63,14 @@ function classify(err: unknown): AuthError {
   if (code.includes('popup-blocked')) return new AuthError('popup-blocked', message);
   if (code.includes('popup-closed') || code.includes('cancelled-popup')) {
     return new AuthError('popup-closed', message);
+  }
+  // Firebase reports a blocked SMS region as operation-not-allowed too, so the
+  // message has to be read before the code — otherwise a region problem is
+  // reported as "the provider is switched off", which sends you to the wrong
+  // console page. Seen live: "OPERATION_NOT_ALLOWED : SMS unable to be sent
+  // until this region enabled by the app developer."
+  if (/SMS unable to be sent|region enabled by the app developer|UNSUPPORTED_REGION/i.test(message)) {
+    return new AuthError('sms-region-blocked', message);
   }
   if (code.includes('operation-not-allowed') || code.includes('admin-restricted')) {
     return new AuthError('provider-disabled', message);
