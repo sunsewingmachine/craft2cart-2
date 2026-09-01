@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Language } from '../../types';
 import { playTapTone } from '../../utils/audio';
 
@@ -7,6 +8,12 @@ import { playTapTone } from '../../utils/audio';
 // wall today, any full-screen flow later) and the option list must not drift.
 // Rows are a normal control height — tappable on a phone, but not so large that
 // a three-item list fills the screen.
+//
+// The dialog is portalled to <body>. It has to be: the top bar carries
+// backdrop-blur, and a backdrop-filter (like transform and filter) makes that
+// element the containing block for its fixed descendants — so a dialog rendered
+// inside the header anchors to the 64px header strip instead of the viewport and
+// spills off the top of the screen.
 
 export const LANGUAGE_OPTIONS: { id: Language; short: string; label: string }[] = [
   { id: 'en', short: 'EN', label: 'English' },
@@ -57,9 +64,9 @@ export const LanguageDialog: React.FC<LanguageDialogProps> = ({ lang, onSelect, 
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [onClose]);
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-5 bg-black/40 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto p-5 bg-black/40 backdrop-blur-sm animate-fade-in"
       onClick={onClose}
       role="presentation"
     >
@@ -124,6 +131,7 @@ export const LanguageDialog: React.FC<LanguageDialogProps> = ({ lang, onSelect, 
           );
         })}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
