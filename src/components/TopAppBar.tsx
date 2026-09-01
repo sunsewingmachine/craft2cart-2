@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { Language } from '../types';
 import { stopSpeech, playTapTone } from '../utils/audio';
 import { getTranslation } from '../data/translations';
-import { LANGUAGE_OPTIONS } from './language/LanguageDialog';
+import { LanguageDialog, LanguageIconButton } from './language/LanguageDialog';
 
 interface TopAppBarProps {
   currentLang: Language;
@@ -29,28 +29,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
 }) => {
   const t = getTranslation(currentLang);
 
-  // Language dropdown
   const [langOpen, setLangOpen] = useState(false);
-  const langRef = useRef<HTMLDivElement | null>(null);
-  const activeLang = LANGUAGE_OPTIONS.find((o) => o.id === currentLang) ?? LANGUAGE_OPTIONS[0];
-
-  useEffect(() => {
-    if (!langOpen) return;
-    const onPointerDown = (e: MouseEvent | TouchEvent) => {
-      if (langRef.current && !langRef.current.contains(e.target as Node)) setLangOpen(false);
-    };
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setLangOpen(false);
-    };
-    document.addEventListener('mousedown', onPointerDown);
-    document.addEventListener('touchstart', onPointerDown);
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('mousedown', onPointerDown);
-      document.removeEventListener('touchstart', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [langOpen]);
 
   const navItems = [
     { id: 'home', label: t.home, icon: 'home' },
@@ -96,7 +75,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
               onOpenProfile();
             }}
             aria-label="Open artisan profile"
-            className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-[#9f3e07] hover:scale-105 active:scale-95 transition-all shadow-sm shrink-0"
+            className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-[#9f3e07] hover:scale-105 active:scale-95 transition-all shadow-sm shrink-0"
           >
             <img
               src={
@@ -106,7 +85,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
               alt="Artisan Profile"
               className="w-full h-full object-cover"
             />
-            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#128752] rounded-full border border-white" />
+            <span className="absolute bottom-0 right-0 w-2 h-2 bg-[#128752] rounded-full border border-white" />
           </button>
 
           <div
@@ -174,77 +153,17 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
             </button>
           )}
 
-          {/* Language Selector — one dropdown for EN / தமிழ் / த·EN */}
-          <div className="relative shrink-0" ref={langRef}>
-            <button
-              type="button"
-              onClick={() => {
-                playTapTone('tap');
-                setLangOpen((open) => !open);
-              }}
-              aria-haspopup="listbox"
-              aria-expanded={langOpen}
-              aria-label="Change language"
-              title="Change language"
-              className="flex items-center gap-1 min-h-[40px] bg-[#f2f0eb] hover:bg-[#e8e5df] border border-[#e8e5df] rounded-full pl-2.5 pr-1.5 py-1.5 shadow-inner active:scale-95 transition-all"
-            >
-              <span className="material-symbols-outlined text-[18px] text-[#9f3e07]">language</span>
-              <span className="text-[11px] sm:text-xs font-bold leading-none whitespace-nowrap text-[#57423a]">
-                {activeLang.short}
-              </span>
-              <span
-                className={`material-symbols-outlined text-[18px] text-[#57423a] transition-transform ${
-                  langOpen ? 'rotate-180' : ''
-                }`}
-              >
-                expand_more
-              </span>
-            </button>
+          {/* Language: the same quiet globe as the sign-in screen, opening the
+              shared dialog, so the control does not change shape between them. */}
+          <LanguageIconButton lang={currentLang} onClick={() => setLangOpen(true)} />
 
-            {langOpen && (
-              <ul
-                role="listbox"
-                aria-label="Language"
-                className="absolute right-0 top-full mt-2 w-52 bg-[#ffffff] border border-[#e8e5df] rounded-2xl shadow-lg overflow-hidden z-50 animate-fade-in"
-              >
-                {LANGUAGE_OPTIONS.map((opt) => {
-                  const isActive = opt.id === currentLang;
-                  return (
-                    <li key={opt.id}>
-                      <button
-                        type="button"
-                        role="option"
-                        aria-selected={isActive}
-                        onClick={() => {
-                          playTapTone('tap');
-                          onLanguageChange(opt.id);
-                          setLangOpen(false);
-                        }}
-                        className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left text-xs font-bold transition-all ${
-                          isActive ? 'bg-[#ffdbcd]/50 text-[#9f3e07]' : 'text-[#57423a] hover:bg-[#f2f0eb]'
-                        }`}
-                      >
-                        <span className="flex items-center gap-2 min-w-0">
-                          <span className="w-12 shrink-0 text-center rounded-full bg-[#f2f0eb] py-0.5 text-[11px]">
-                            {opt.short}
-                          </span>
-                          <span className="truncate">{opt.label}</span>
-                        </span>
-                        {isActive && (
-                          <span
-                            className="material-symbols-outlined text-base shrink-0"
-                            style={{ fontVariationSettings: "'FILL' 1" }}
-                          >
-                            check
-                          </span>
-                        )}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
+          {langOpen && (
+            <LanguageDialog
+              lang={currentLang}
+              onSelect={onLanguageChange}
+              onClose={() => setLangOpen(false)}
+            />
+          )}
         </div>
       </div>
     </header>
