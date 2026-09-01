@@ -71,7 +71,7 @@ export const LanguageDialog: React.FC<LanguageDialogProps> = ({ lang, onSelect, 
         className="w-full max-w-sm rounded-3xl bg-[#f2f0eb] border border-[#e8e5df] shadow-xl p-4 flex flex-col gap-2"
       >
         <div className="flex items-center justify-between gap-3 mb-1">
-          <h2 className="font-['Public_Sans'] text-base font-bold text-[#1a1c1b]">Language</h2>
+          <h2 className="font-['Public_Sans'] text-base font-medium text-[#1a1c1b]">Language</h2>
           <button
             type="button"
             onClick={() => {
@@ -96,7 +96,7 @@ export const LanguageDialog: React.FC<LanguageDialogProps> = ({ lang, onSelect, 
                 onSelect(option.id);
                 onClose();
               }}
-              className={`w-full h-[48px] px-3 rounded-xl flex items-center justify-between gap-2 text-sm font-bold btn-press transition-colors ${
+              className={`w-full h-[48px] px-3 rounded-xl flex items-center justify-between gap-2 text-sm font-medium btn-press transition-colors ${
                 isActive
                   ? 'bg-[#128752] text-white'
                   : 'bg-[#e8e5df] hover:bg-[#dcd9d2] text-[#1a1c1b]'
