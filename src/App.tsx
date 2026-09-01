@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BuyerInquiry, Language, ProductProfile, SellingChannel, UserProfile } from './types';
 import { SAMPLE_PRODUCTS, DEMO_PHOTO_OPTIONS } from './data/sampleProducts';
 import { DEMO_BUYERS } from './data/buyers';
@@ -22,47 +22,32 @@ import { ChannelExportModal } from './components/ChannelExportModal';
 import { ProductEditModal } from './components/ProductEditModal';
 import { BuyerEditModal } from './components/BuyerEditModal';
 import { IntroSplash } from './components/IntroSplash';
+import { LoginScreen } from './components/auth/LoginScreen';
 
-const PRODUCTS_STORAGE_KEY = 'craft2cart.products';
-const PROFILE_STORAGE_KEY = 'craft2cart.profile';
-const BUYERS_STORAGE_KEY = 'craft2cart.buyers';
+import { ArtisanAccount, isAuthAvailable, signOutArtisan, watchAccount } from './services/authService';
+import {
+  deleteBuyer as deleteBuyerRemote,
+  deleteProduct as deleteProductRemote,
+  loadArtisanData,
+  loadLocalBuyers,
+  loadLocalProducts,
+  loadLocalProfile,
+  saveBuyer as saveBuyerRemote,
+  saveLocalBuyers,
+  saveLocalProducts,
+  saveLocalProfile,
+  saveProduct as saveProductRemote,
+  saveProfile as saveProfileRemote,
+  seedArtisanData
+} from './services/artisanStore';
+import {
+  CatalogDraft,
+  analyzeProductPhoto,
+  draftDescription,
+  draftName
+} from './services/catalogService';
 
-// Products survive page refreshes; falls back to the demo set when storage is
-// empty, unreadable, or the user deleted everything (never an empty first run).
-const loadStoredProducts = (): ProductProfile[] | null => {
-  try {
-    const raw = localStorage.getItem(PRODUCTS_STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : null;
-  } catch {
-    return null;
-  }
-};
-
-// Unlike products, an empty buyer list is a legitimate saved state: the user
-// may have deleted every inquiry, and we must not resurrect the demo set.
-const loadStoredBuyers = (): BuyerInquiry[] | null => {
-  try {
-    const raw = localStorage.getItem(BUYERS_STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : null;
-  } catch {
-    return null;
-  }
-};
-
-const loadStoredProfile = (): UserProfile | null => {
-  try {
-    const raw = localStorage.getItem(PROFILE_STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as UserProfile) : null;
-  } catch {
-    return null;
-  }
-};
-
-const initialProducts = loadStoredProducts() ?? SAMPLE_PRODUCTS;
+const initialProducts = loadLocalProducts() ?? SAMPLE_PRODUCTS;
 
 export default function App() {
   // Navigation & Language
@@ -71,13 +56,19 @@ export default function App() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showIntro, setShowIntro] = useState(true);
 
+  // Sign-in. When Firebase is not configured the app runs exactly as before:
+  // no login wall, everything in localStorage.
+  const [account, setAccount] = useState<ArtisanAccount | null>(null);
+  const [authReady, setAuthReady] = useState(!isAuthAvailable());
+  const [skippedLogin, setSkippedLogin] = useState(false);
+
   // Products & Buyers State
   const [products, setProducts] = useState<ProductProfile[]>(initialProducts);
   const [currentProduct, setCurrentProduct] = useState<ProductProfile>(initialProducts[0]);
-  const [buyers, setBuyers] = useState<BuyerInquiry[]>(() => loadStoredBuyers() ?? DEMO_BUYERS);
+  const [buyers, setBuyers] = useState<BuyerInquiry[]>(() => loadLocalBuyers() ?? DEMO_BUYERS);
 
   // Profile State
-  const [userProfile, setUserProfile] = useState<UserProfile>(() => loadStoredProfile() ?? {
+  const [userProfile, setUserProfile] = useState<UserProfile>(() => loadLocalProfile() ?? {
     name: 'Lakshmi',
     location: 'Madurai, Tamil Nadu',
     avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCbFcB8ddjUgGcIrnZGL5EdCf2ZtC-4meSf22ZkPo8DWZiMP--s2r2jjm4onXvpeWKsrD_DUe22HiD306horcXQZlgZBxIMUPGYoJSXiyRuTJe7W-1rzFB2vRCkZnTmuH-HFMnU3GU-UIl7hIifxPOT6SPeWIseYwTqFo8Hg_t0Ul4afcRgSp-aq_Tl9WodKAK7EURWW40UttIUhXrLbimEkXcXiLjD1GCY1akZFfn5cLTxUVbDy0EI',
@@ -108,6 +99,13 @@ export default function App() {
   const [tempDetectedTitle, setTempDetectedTitle] = useState(DEMO_PHOTO_OPTIONS[0].detectedTitle);
   const [tempDetectedMaterial, setTempDetectedMaterial] = useState(DEMO_PHOTO_OPTIONS[0].material);
 
+  // Smart cataloging. `catalogDraft` is whatever the AI last read from the
+  // photo; `analysisId` discards a slow reply that lands after a retake.
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [catalogDraft, setCatalogDraft] = useState<CatalogDraft | null>(null);
+  const [aiSource, setAiSource] = useState<'ai' | 'fallback' | null>(null);
+  const analysisId = useRef(0);
+
   // Modals
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [selectedChannelExport, setSelectedChannelExport] = useState<SellingChannel['id'] | null>(null);
@@ -128,31 +126,72 @@ export default function App() {
   }, [anyModalOpen]);
 
   // Persist products & profile so a page refresh doesn't wipe the catalog.
-  // Camera photos are stored as data URLs, so a full quota (~5MB) is possible —
-  // the app then simply keeps working in-memory.
+  // This local copy is kept even when signed in: it is the offline cache and
+  // the demo-mode store. Camera photos are data URLs, so a full quota (~5MB) is
+  // possible — the app then simply keeps working in-memory.
   useEffect(() => {
-    try {
-      localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(products));
-    } catch {
-      /* storage unavailable or full */
-    }
+    saveLocalProducts(products);
   }, [products]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(BUYERS_STORAGE_KEY, JSON.stringify(buyers));
-    } catch {
-      /* storage unavailable or full */
-    }
+    saveLocalBuyers(buyers);
   }, [buyers]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(userProfile));
-    } catch {
-      /* storage unavailable or full */
-    }
+    saveLocalProfile(userProfile);
   }, [userProfile]);
+
+  // Follow the signed-in artisan. Fires once with the restored session, which
+  // is what clears the auth loading state on a refresh.
+  useEffect(() => {
+    if (!isAuthAvailable()) return;
+    return watchAccount((next) => {
+      setAccount(next);
+      setAuthReady(true);
+    });
+  }, []);
+
+  // Pull this artisan's catalog out of Firestore on sign-in. A brand-new
+  // account has nothing there, so we push up whatever is on the device — that
+  // way the first sign-in never looks like the app lost their work.
+  useEffect(() => {
+    if (!account) return;
+    let cancelled = false;
+
+    (async () => {
+      const data = await loadArtisanData(account.uid);
+      if (cancelled) return;
+
+      if (!data.products && !data.buyers && !data.profile) {
+        const seedProducts = loadLocalProducts() ?? SAMPLE_PRODUCTS;
+        const seedBuyers = loadLocalBuyers() ?? DEMO_BUYERS;
+        const seedProfile = loadLocalProfile() ?? userProfile;
+        setProducts(seedProducts);
+        setCurrentProduct(seedProducts[0]);
+        setBuyers(seedBuyers);
+        void seedArtisanData(account.uid, {
+          products: seedProducts,
+          buyers: seedBuyers,
+          profile: seedProfile
+        });
+        return;
+      }
+
+      if (data.products && data.products.length > 0) {
+        setProducts(data.products);
+        setCurrentProduct(data.products[0]);
+      }
+      if (data.buyers) setBuyers(data.buyers);
+      if (data.profile) setUserProfile(data.profile);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // userProfile is only read as a seed value on first sign-in; re-running this
+    // on every profile edit would re-fetch the whole catalog.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [account]);
 
   // Listen to speech synthesis state
   useEffect(() => {
@@ -171,18 +210,40 @@ export default function App() {
     setActiveTab('sell');
   };
 
-  // Step 1: Photo Captured
+  // Step 1: Photo Captured -> hand the photo to Gemini for smart cataloging.
+  // The demo samples ship with their own details and skip the round trip; a real
+  // camera or gallery photo is a data URL and gets analysed.
   const handlePhotoCaptured = (photoUrl: string, sampleInfo?: typeof DEMO_PHOTO_OPTIONS[0]) => {
     stopSpeech();
     setTempPhoto(photoUrl);
-    if (sampleInfo) {
-      setTempDetectedTitle(sampleInfo.detectedTitle);
-      setTempDetectedMaterial(sampleInfo.material);
-    } else {
-      setTempDetectedTitle('Handmade Artisan Craft');
-      setTempDetectedMaterial('Natural Fiber');
-    }
+    setCatalogDraft(null);
+    setAiSource(null);
+
+    const fallbackName = sampleInfo?.detectedTitle ?? 'Handmade Artisan Craft';
+    const fallbackMaterial = sampleInfo?.material ?? 'Natural Fiber';
+    setTempDetectedTitle(fallbackName);
+    setTempDetectedMaterial(fallbackMaterial);
     setSellStep('ai_check');
+
+    if (!photoUrl.startsWith('data:')) {
+      setIsAnalyzing(false);
+      return;
+    }
+
+    const requestId = ++analysisId.current;
+    setIsAnalyzing(true);
+
+    void analyzeProductPhoto(photoUrl, { name: fallbackName, material: fallbackMaterial }).then(
+      (result) => {
+        // A retake started a newer analysis — this answer is stale, drop it.
+        if (requestId !== analysisId.current) return;
+        setCatalogDraft(result.draft);
+        setAiSource(result.source);
+        setTempDetectedTitle(draftName(result.draft, currentLang));
+        setTempDetectedMaterial(result.draft.material || fallbackMaterial);
+        setIsAnalyzing(false);
+      }
+    );
   };
 
   // Step 2: AI Check Confirmed
@@ -210,16 +271,23 @@ export default function App() {
     const newProduct: ProductProfile = {
       id: `prod-${Date.now()}`,
       name: tempDetectedTitle,
-      category: 'Handicrafts & Sustainable Living',
+      // The AI's own reading wins where it has one; the old generic strings stay
+      // as the fallback for demo samples and offline runs.
+      category: catalogDraft?.category || 'Handicrafts & Sustainable Living',
       material: details.material,
       isHandmade: details.isHandmade,
       quantity: details.quantity,
       price: details.price,
       costMaterial: details.costMaterial,
       costLabor: details.costLabor,
-      description: `Eco-friendly, authentic handcrafted ${descName.toLowerCase()} made with ${details.material}. Prepared for multi-channel listing.`,
+      description: catalogDraft
+        ? draftDescription(catalogDraft, currentLang)
+        : `Eco-friendly, authentic handcrafted ${descName.toLowerCase()} made with ${details.material}. Prepared for multi-channel listing.`,
       image: tempPhoto,
-      tags: ['Handmade', 'Artisan', 'Sustainable', 'Craft2Cart Verified'],
+      tags:
+        catalogDraft && catalogDraft.tags.length > 0
+          ? catalogDraft.tags
+          : ['Handmade', 'Artisan', 'Sustainable', 'Craft2Cart Verified'],
       location: userProfile.location || 'Madurai, Tamil Nadu',
       status: 'ready',
       createdAt: 'Just now'
@@ -229,11 +297,21 @@ export default function App() {
     setCurrentProduct(newProduct);
     setProducts((prev) => [newProduct, ...prev.filter((p) => p.id !== newProduct.id)]);
     setSellStep('ready');
+
+    // Persist. The photo moves to Cloud Storage and the saved record comes back
+    // pointing at the hosted URL, which we swap in so the heavy data URL is
+    // dropped from state and from the local cache.
+    void saveProductRemote(account?.uid ?? null, newProduct).then((saved) => {
+      if (saved.image === newProduct.image) return;
+      setProducts((prev) => prev.map((p) => (p.id === saved.id ? saved : p)));
+      setCurrentProduct((prev) => (prev.id === saved.id ? saved : prev));
+    });
   };
 
   // Delete Product Handler
   const handleDeleteProduct = (productId: string) => {
     stopSpeech();
+    void deleteProductRemote(account?.uid ?? null, productId);
     const updated = products.filter((p) => p.id !== productId);
     setProducts(updated);
     if (currentProduct && currentProduct.id === productId) {
@@ -248,6 +326,7 @@ export default function App() {
 
   // Save Edited Product Handler
   const handleSaveEditedProduct = (updated: ProductProfile) => {
+    void saveProductRemote(account?.uid ?? null, updated);
     setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
     if (currentProduct && currentProduct.id === updated.id) {
       setCurrentProduct(updated);
@@ -265,6 +344,7 @@ export default function App() {
   // new inquiry goes to the top of the list where the user will look for it.
   const handleSaveBuyer = (saved: BuyerInquiry) => {
     stopSpeech();
+    void saveBuyerRemote(account?.uid ?? null, saved);
     const isExisting = buyers.some((b) => b.id === saved.id);
     setBuyers((prev) => (isExisting ? prev.map((b) => (b.id === saved.id ? saved : b)) : [saved, ...prev]));
     setBuyerEditor(null);
@@ -282,11 +362,13 @@ export default function App() {
 
   const handleDeleteBuyer = (buyerId: string) => {
     stopSpeech();
+    void deleteBuyerRemote(account?.uid ?? null, buyerId);
     setBuyers((prev) => prev.filter((b) => b.id !== buyerId));
   };
 
   // Update Profile Handler
   const handleUpdateProfile = (updated: UserProfile) => {
+    void saveProfileRemote(account?.uid ?? null, updated);
     setUserProfile(updated);
   };
 
@@ -319,6 +401,40 @@ export default function App() {
       setActiveTab('home');
     }
   };
+
+  // Sign out returns the app to the login wall and clears this artisan's data
+  // out of memory, so the next person on a shared phone starts clean.
+  const handleSignOut = async () => {
+    stopSpeech();
+    await signOutArtisan();
+    setSkippedLogin(false);
+    setActiveTab('home');
+    setSellStep('photo');
+    setShowProfileModal(false);
+    setProducts(SAMPLE_PRODUCTS);
+    setCurrentProduct(SAMPLE_PRODUCTS[0]);
+    setBuyers(DEMO_BUYERS);
+  };
+
+  // Wait for Firebase to say whether a session was restored, so a signed-in
+  // artisan never sees the login screen flash on a refresh.
+  if (isAuthAvailable() && !authReady) {
+    return (
+      <div className="min-h-[100svh] w-full bg-[#f9f9f6] flex items-center justify-center">
+        <div className="w-12 h-12 rounded-full border-4 border-[#d6e0f6] border-t-[#128752] animate-spin" />
+      </div>
+    );
+  }
+
+  if (isAuthAvailable() && !account && !skippedLogin) {
+    return (
+      <LoginScreen
+        lang={currentLang}
+        onLanguageChange={setCurrentLang}
+        onSkip={() => setSkippedLogin(true)}
+      />
+    );
+  }
 
   // Remounting the content area on every screen change replays the one-shot
   // enter animation. The sell flow keys on its step too, so each question in
@@ -380,6 +496,9 @@ export default function App() {
                 photoUrl={tempPhoto}
                 detectedName={tempDetectedTitle}
                 detectedMaterial={tempDetectedMaterial}
+                isAnalyzing={isAnalyzing}
+                draft={catalogDraft}
+                aiSource={aiSource}
                 lang={currentLang}
                 onConfirm={handleAICheckConfirmed}
                 onRetake={() => setSellStep('photo')}
@@ -497,6 +616,8 @@ export default function App() {
           profile={userProfile}
           onUpdateProfile={handleUpdateProfile}
           onClose={() => setShowProfileModal(false)}
+          accountLabel={account ? account.phoneNumber ?? account.email ?? account.displayName : null}
+          onSignOut={account ? handleSignOut : undefined}
         />
       )}
 

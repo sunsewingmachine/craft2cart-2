@@ -9,6 +9,9 @@ interface SellerProfileModalProps {
   profile: UserProfile;
   onUpdateProfile: (updated: UserProfile) => void;
   onClose: () => void;
+  /** Signed-in identity (phone or email). Absent when running without login. */
+  accountLabel?: string | null;
+  onSignOut?: () => void;
 }
 
 const AVATAR_OPTIONS = [
@@ -26,7 +29,9 @@ export const SellerProfileModal: React.FC<SellerProfileModalProps> = ({
   lang,
   profile,
   onUpdateProfile,
-  onClose
+  onClose,
+  accountLabel,
+  onSignOut
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isPlayingStory, setIsPlayingStory] = useState(false);
@@ -227,6 +232,30 @@ export const SellerProfileModal: React.FC<SellerProfileModalProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Signed-in strip. Only rendered with a real account, so the offline
+            demo mode shows no half-working sign-out button. */}
+        {accountLabel && onSignOut && (
+          <div className="flex items-center justify-between gap-3 py-3 border-b border-[#e8e5df]">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="material-symbols-outlined text-[#128752] text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                verified_user
+              </span>
+              <span className="text-xs sm:text-sm font-bold text-[#57423a] truncate">{accountLabel}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                playTapTone('tap');
+                onSignOut();
+              }}
+              className="flex items-center gap-1.5 px-3 min-h-[40px] rounded-xl bg-[#f4f4f1] hover:bg-[#e8e5df] text-[#9f3e07] font-bold text-xs sm:text-sm border border-[#e8e5df] active:scale-95 transition-all flex-shrink-0"
+            >
+              <span className="material-symbols-outlined text-lg">logout</span>
+              <span>{bi('வெளியேறு', 'Sign out', lang)}</span>
+            </button>
+          </div>
+        )}
 
         {/* ========================================================================= */}
         {/* VIEW MODE: ARTISAN PROFILE DISPLAY                                        */}

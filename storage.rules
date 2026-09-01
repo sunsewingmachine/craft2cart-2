@@ -1,0 +1,23 @@
+rules_version = '2';
+
+// Product photos. Only the owning artisan may upload, replace or delete, and
+// uploads are capped and restricted to images so a bad client cannot fill the
+// bucket. Reads are open because a listing photo is meant to be shared: the
+// artisan sends the download URL to buyers over WhatsApp, and those buyers are
+// not signed in. The URL carries an unguessable token, so nothing is browsable.
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    match /artisans/{uid}/products/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null
+                   && request.auth.uid == uid
+                   && request.resource.size < 10 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Anything outside an artisan's own product folder is denied.
+  }
+}

@@ -1,13 +1,20 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Language } from '../types';
 import { getTranslation, bi, speechFor } from '../data/translations';
 import { speakText, playTapTone } from '../utils/audio';
+import { CatalogDraft } from '../services/catalogService';
 
 interface AICheckScreenProps {
   lang: Language;
   photoUrl: string;
   detectedName: string;
   detectedMaterial: string;
+  /** True while Gemini is still reading the photo. */
+  isAnalyzing?: boolean;
+  /** What the AI read from the photo. Null before the first answer arrives. */
+  draft?: CatalogDraft | null;
+  /** 'fallback' means the AI could not be reached and these are demo values. */
+  aiSource?: 'ai' | 'fallback' | null;
   onConfirm: (confirmedName: string) => void;
   onRetake: () => void;
 }
@@ -16,6 +23,10 @@ export const AICheckScreen: React.FC<AICheckScreenProps> = ({
   lang,
   photoUrl,
   detectedName,
+  detectedMaterial,
+  isAnalyzing = false,
+  draft = null,
+  aiSource = null,
   onConfirm,
   onRetake
 }) => {
@@ -23,6 +34,13 @@ export const AICheckScreen: React.FC<AICheckScreenProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [customName, setCustomName] = useState(detectedName);
   const [isListeningMic, setIsListeningMic] = useState(false);
+
+  // The name arrives from the AI a few seconds after this screen mounts, so the
+  // draft in the edit box has to follow it — until the artisan starts typing,
+  // at which point their own words win.
+  useEffect(() => {
+    if (!isEditing) setCustomName(detectedName);
+  }, [detectedName, isEditing]);
 
   const getLocalizedQuestion = () => {
     if (lang === 'ta') {
@@ -108,8 +126,24 @@ export const AICheckScreen: React.FC<AICheckScreenProps> = ({
         </div>
       </div>
 
+      {/* Reading the photo. Shown in place of the question until Gemini answers,
+          so the artisan is never asked to confirm a name that is still a guess. */}
+      {isAnalyzing && (
+        <div className="w-full mb-6 flex flex-col items-center gap-3 text-center">
+          <div className="w-14 h-14 rounded-full border-4 border-[#d6e0f6] border-t-[#128752] animate-spin" />
+          <p className="font-['Public_Sans'] text-lg font-bold text-[#1a1c1b]">{t.aiChecking}</p>
+          <p className="text-sm text-[#57423a] max-w-sm">
+            {bi(
+              'உங்கள் புகைப்படத்தைப் பார்த்து விவரங்களை எழுதுகிறோம்.',
+              'Looking at your photo and writing the details.',
+              lang
+            )}
+          </p>
+        </div>
+      )}
+
       {/* Question Area */}
-      <div className="w-full text-center mb-6 flex flex-col items-center">
+      <div className={`w-full text-center mb-6 flex flex-col items-center ${isAnalyzing ? 'hidden' : ''}`}>
         <div className="flex items-center justify-center gap-3 mb-2">
           <h2 className="font-['Source_Serif_4',serif] text-2xl sm:text-3xl font-bold text-[#1a1c1b]">
             {isEditing ? `${bi('பொருள்', 'Product', lang)}: ${customName}` : getLocalizedQuestion()}
@@ -140,8 +174,59 @@ export const AICheckScreen: React.FC<AICheckScreenProps> = ({
         )}
       </div>
 
+      {/* What the AI actually read. Showing material, category and a price range
+          is the difference between "it guessed a name" and a real catalog draft. */}
+      {!isAnalyzing && draft && (
+        <div className="w-full bg-[#ffffff] rounded-2xl soft-shadow border border-[#e8e5df] p-4 mb-6 flex flex-col gap-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-[11px] font-bold text-[#57423a] uppercase tracking-wider">
+                {bi('பொருள்', 'Material', lang)}
+              </p>
+              <p className="text-base font-bold text-[#1a1c1b]">{draft.material || detectedMaterial}</p>
+            </div>
+            <div>
+              <p className="text-[11px] font-bold text-[#57423a] uppercase tracking-wider">
+                {bi('வகை', 'Category', lang)}
+              </p>
+              <p className="text-base font-bold text-[#1a1c1b]">{draft.category}</p>
+            </div>
+          </div>
+
+          <div className="pt-3 border-t border-[#e8e5df]">
+            <p className="text-[11px] font-bold text-[#57423a] uppercase tracking-wider">
+              {bi('பரிந்துரைக்கப்பட்ட விலை', 'Suggested price', lang)}
+            </p>
+            <p className="text-xl font-bold text-[#128752]">
+              ₹{draft.suggestedPriceMin} – ₹{draft.suggestedPriceMax}
+            </p>
+            <p className="text-sm text-[#57423a] mt-0.5">{draft.priceReason}</p>
+          </div>
+
+          {draft.photoTip && (
+            <div className="flex items-start gap-2 bg-[#fff8e6] border border-[#e8dcae] rounded-xl p-3">
+              <span className="material-symbols-outlined text-lg text-[#9f3e07] flex-shrink-0">lightbulb</span>
+              <p className="text-sm font-semibold text-[#57423a]">{draft.photoTip}</p>
+            </div>
+          )}
+
+          {aiSource === 'fallback' && (
+            <div className="flex items-start gap-2">
+              <span className="material-symbols-outlined text-lg text-[#57423a] flex-shrink-0">cloud_off</span>
+              <p className="text-sm text-[#57423a]">
+                {bi(
+                  'இணையம் இல்லை — இவை மாதிரி விவரங்கள். நீங்கள் திருத்தலாம்.',
+                  'Offline — these are sample details. You can correct them.',
+                  lang
+                )}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Action Buttons */}
-      <div className="w-full flex flex-col gap-3.5 mt-auto">
+      <div className={`w-full flex flex-col gap-3.5 mt-auto ${isAnalyzing ? 'opacity-40 pointer-events-none' : ''}`}>
         <button
           onClick={() => {
             playTapTone('success');

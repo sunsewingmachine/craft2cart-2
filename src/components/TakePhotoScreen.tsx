@@ -3,6 +3,7 @@ import { Language } from '../types';
 import { getTranslation, bi, speechFor } from '../data/translations';
 import { DEMO_PHOTO_OPTIONS } from '../data/sampleProducts';
 import { speakText, playTapTone, stopSpeech } from '../utils/audio';
+import { fileToListingPhoto, scaleDataUrl } from '../utils/image';
 
 interface TakePhotoScreenProps {
   lang: Language;
@@ -131,6 +132,9 @@ export const TakePhotoScreen: React.FC<TakePhotoScreenProps> = ({
         stopCamera();
         setCapturedPhoto(dataUrl);
         setSelectedSample(undefined);
+        // Shrink in the background so the AI step sends a light image; the
+        // full-size shot is already on screen, so this is invisible.
+        void scaleDataUrl(dataUrl).then((scaled) => setCapturedPhoto(scaled)).catch(() => {});
 
         speakText(
           speechFor(
@@ -148,28 +152,39 @@ export const TakePhotoScreen: React.FC<TakePhotoScreenProps> = ({
   };
 
   // Handle image file selection (from phone camera or gallery)
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          playTapTone('shutter');
-          stopCamera();
-          setCapturedPhoto(event.target.result as string);
-          setSelectedSample(undefined);
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0]) return;
+    const file = e.target.files[0];
 
-          speakText(
-            speechFor(
-              lang,
-              "Photo selected! Tap Use This Photo to continue.",
-              "புகைப்படம் தேர்வு செய்யப்பட்டது! தொடர அழுத்தவும்."
-            ),
-            lang
-          );
-        }
-      };
-      reader.readAsDataURL(file);
+    // A raw phone photo is several megabytes. Downscaling here keeps the upload
+    // and the AI call quick, and keeps the listing well under Firestore limits.
+    try {
+      const photo = await fileToListingPhoto(file);
+      playTapTone('shutter');
+      stopCamera();
+      setCapturedPhoto(photo);
+      setSelectedSample(undefined);
+
+      speakText(
+        speechFor(
+          lang,
+          "Photo selected! Tap Use This Photo to continue.",
+          "புகைப்படம் தேர்வு செய்யப்பட்டது! தொடர அழுத்தவும்."
+        ),
+        lang
+      );
+    } catch {
+      speakText(
+        speechFor(
+          lang,
+          "That photo could not be used. Please try another one.",
+          "அந்த புகைப்படத்தை பயன்படுத்த முடியவில்லை. வேறொன்றை முயற்சிக்கவும்."
+        ),
+        lang
+      );
+    } finally {
+      // Let the same file be picked again after a failed or repeated attempt.
+      e.target.value = '';
     }
   };
 

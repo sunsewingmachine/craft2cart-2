@@ -1,0 +1,181 @@
+import {
+  ConfirmationResult,
+  GoogleAuthProvider,
+  RecaptchaVerifier,
+  User,
+  onAuthStateChanged,
+  signInWithPhoneNumber,
+  signInWithPopup,
+  signOut
+} from 'firebase/auth';
+import { getFirebaseAuth, isFirebaseConfigured } from '../lib/firebase';
+
+// Client-facing auth layer. Screens call these functions and never touch the
+// Firebase SDK directly, so the sign-in provider can change in one file.
+//
+// Two ways in, both requested for the artisan audience: Google (one tap, works
+// on any device) and phone + OTP (many artisans have no email address).
+// Phone sign-in needs an invisible reCAPTCHA anchored to a real DOM node; that
+// verifier is created lazily and reused, because Firebase throws if two are
+// attached to the same element.
+
+export interface ArtisanAccount {
+  uid: string;
+  displayName: string | null;
+  phoneNumber: string | null;
+  email: string | null;
+  photoURL: string | null;
+}
+
+export type AuthErrorCode =
+  | 'not-configured'
+  | 'popup-blocked'
+  | 'popup-closed'
+  | 'provider-disabled'
+  | 'invalid-phone'
+  | 'invalid-code'
+  | 'too-many-requests'
+  | 'expired-code'
+  | 'network'
+  | 'unknown';
+
+export class AuthError extends Error {
+  constructor(public code: AuthErrorCode, message: string) {
+    super(message);
+    this.name = 'AuthError';
+  }
+}
+
+const toAccount = (user: User): ArtisanAccount => ({
+  uid: user.uid,
+  displayName: user.displayName,
+  phoneNumber: user.phoneNumber,
+  email: user.email,
+  photoURL: user.photoURL
+});
+
+/** Map Firebase's error strings onto the small set the UI knows how to explain. */
+function classify(err: unknown): AuthError {
+  const code = typeof err === 'object' && err && 'code' in err ? String((err as { code: unknown }).code) : '';
+  const message = err instanceof Error ? err.message : String(err);
+
+  if (code.includes('popup-blocked')) return new AuthError('popup-blocked', message);
+  if (code.includes('popup-closed') || code.includes('cancelled-popup')) {
+    return new AuthError('popup-closed', message);
+  }
+  if (code.includes('operation-not-allowed') || code.includes('admin-restricted')) {
+    return new AuthError('provider-disabled', message);
+  }
+  if (code.includes('invalid-phone-number') || code.includes('missing-phone-number')) {
+    return new AuthError('invalid-phone', message);
+  }
+  if (code.includes('invalid-verification-code')) return new AuthError('invalid-code', message);
+  if (code.includes('code-expired') || code.includes('session-expired')) {
+    return new AuthError('expired-code', message);
+  }
+  if (code.includes('too-many-requests') || code.includes('quota-exceeded')) {
+    return new AuthError('too-many-requests', message);
+  }
+  if (code.includes('network-request-failed')) return new AuthError('network', message);
+  return new AuthError('unknown', message);
+}
+
+export const isAuthAvailable = (): boolean => isFirebaseConfigured;
+
+/**
+ * Subscribe to sign-in state. Fires once immediately with the restored session
+ * (or null), so the caller can drop its loading state on the first callback.
+ */
+export function watchAccount(onChange: (account: ArtisanAccount | null) => void): () => void {
+  const auth = getFirebaseAuth();
+  if (!auth) {
+    onChange(null);
+    return () => {};
+  }
+  return onAuthStateChanged(auth, (user) => onChange(user ? toAccount(user) : null));
+}
+
+export async function signInWithGoogle(): Promise<ArtisanAccount> {
+  const auth = getFirebaseAuth();
+  if (!auth) throw new AuthError('not-configured', 'Firebase is not configured.');
+
+  const provider = new GoogleAuthProvider();
+  // Always let the artisan pick an account; a silently reused one is confusing
+  // on a shared phone.
+  provider.setCustomParameters({ prompt: 'select_account' });
+
+  try {
+    const result = await signInWithPopup(auth, provider);
+    return toAccount(result.user);
+  } catch (err) {
+    throw classify(err);
+  }
+}
+
+let recaptcha: RecaptchaVerifier | null = null;
+
+/** Tear down the reCAPTCHA widget so a later attempt can build a fresh one. */
+export function resetPhoneVerifier(): void {
+  try {
+    recaptcha?.clear();
+  } catch {
+    /* already gone */
+  }
+  recaptcha = null;
+}
+
+/**
+ * Send an OTP. `containerId` is the id of an empty div that Firebase anchors
+ * its invisible reCAPTCHA to. Returns a handle used to confirm the code.
+ */
+export async function startPhoneSignIn(
+  phoneE164: string,
+  containerId: string
+): Promise<ConfirmationResult> {
+  const auth = getFirebaseAuth();
+  if (!auth) throw new AuthError('not-configured', 'Firebase is not configured.');
+
+  if (!/^\+\d{10,15}$/.test(phoneE164)) {
+    throw new AuthError('invalid-phone', 'Phone number must be in +country-code format.');
+  }
+
+  try {
+    if (!recaptcha) {
+      recaptcha = new RecaptchaVerifier(auth, containerId, { size: 'invisible' });
+      await recaptcha.render();
+    }
+    return await signInWithPhoneNumber(auth, phoneE164, recaptcha);
+  } catch (err) {
+    // A failed attempt leaves the widget in a state that rejects the next call.
+    resetPhoneVerifier();
+    throw classify(err);
+  }
+}
+
+export async function confirmPhoneCode(
+  confirmation: ConfirmationResult,
+  code: string
+): Promise<ArtisanAccount> {
+  try {
+    const result = await confirmation.confirm(code.trim());
+    return toAccount(result.user);
+  } catch (err) {
+    throw classify(err);
+  }
+}
+
+export async function signOutArtisan(): Promise<void> {
+  const auth = getFirebaseAuth();
+  if (!auth) return;
+  resetPhoneVerifier();
+  await signOut(auth);
+}
+
+/** Turn a typed Indian number into E.164, so the artisan can type just 10 digits. */
+export function toIndianE164(raw: string): string {
+  const digits = raw.replace(/\D/g, '');
+  if (raw.trim().startsWith('+')) return `+${digits}`;
+  if (digits.length === 10) return `+91${digits}`;
+  if (digits.length === 12 && digits.startsWith('91')) return `+${digits}`;
+  return `+${digits}`;
+}
