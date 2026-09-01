@@ -2,6 +2,9 @@
 // browser calls it — POST a real photo as a data URL to /api/catalog/analyze and
 // print what comes back. Catches wiring faults that a direct module test misses:
 // route registration, JSON body limits, error shape, Vite middleware ordering.
+// Also checks the photo gatekeeper: the draft carries isProduct, and a photo of
+// anything unsellable (a face, a screenshot, a wall) must come back false with a
+// reason in both languages. Pass a non-product image URL to test that side.
 // Usage:  node scripts/test-api-analyze.mjs [baseUrl] [imageUrl]
 //         (dev server must already be running — see .claude/launch.json)
 // Origin: craft2cart-2, created 2026-09-01. Keep for reuse (global rule 18).
@@ -45,6 +48,11 @@ async function main() {
 
   const d = body.draft;
   console.log(`model    : ${body.model}`);
+  console.log(`isProduct: ${d.isProduct}`);
+  if (!d.isProduct) {
+    console.log(`reject   : ${d.rejectReason}`);
+    console.log(`reject(ta): ${d.rejectReasonTamil}`);
+  }
   console.log(`name     : ${d.name}`);
   console.log(`name(ta) : ${d.nameTamil}`);
   console.log(`category : ${d.category}`);

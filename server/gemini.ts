@@ -45,6 +45,11 @@ export const isGeminiConfigured = (): boolean => Boolean(process.env.GEMINI_API_
 
 /** The catalog fields Gemini fills in from a single product photo. */
 export interface CatalogDraft {
+  /** False when the photo shows no sellable item — a selfie, a screenshot, a wall. */
+  isProduct: boolean;
+  /** Why it was rejected, in the seller's own words. Empty when isProduct is true. */
+  rejectReason: string;
+  rejectReasonTamil: string;
   name: string;
   nameTamil: string;
   category: string;
@@ -63,6 +68,16 @@ export interface CatalogDraft {
 const CATALOG_SCHEMA = {
   type: Type.OBJECT,
   properties: {
+    isProduct: {
+      type: Type.BOOLEAN,
+      description: 'True only if the photo shows a physical item an artisan could actually sell.'
+    },
+    rejectReason: {
+      type: Type.STRING,
+      description:
+        'When isProduct is false: one short English sentence (max 14 words) saying what you actually see, addressed to the seller. Empty string otherwise.'
+    },
+    rejectReasonTamil: { type: Type.STRING, description: 'The same sentence in Tamil. Empty string otherwise.' },
     name: {
       type: Type.STRING,
       description: 'Short marketplace product title in English, 3-6 words, no brand names.'
@@ -100,6 +115,9 @@ const CATALOG_SCHEMA = {
     }
   },
   required: [
+    'isProduct',
+    'rejectReason',
+    'rejectReasonTamil',
     'name',
     'nameTamil',
     'category',
@@ -130,8 +148,24 @@ Rules:
 - Tamil text must be natural Tamil, not a word-by-word transliteration of the English.
 - If the photo is blurry, dark, or the product is hard to see, say so in photoTip and set a lower
   confidence. Still fill in every field with your best reading.
-- If the image contains no craft product at all, set confidence to "low", name it plainly as what
-  you see, and use photoTip to ask for a photo of the product.`;
+
+Gatekeeping — decide this first, and set isProduct.
+
+Set isProduct = false when the photo shows anything that cannot be sold as an item, including:
+- people, faces, selfies, group photos
+- animals or pets
+- landscapes, buildings, vehicles, sky, plants growing outdoors
+- screenshots, documents, text, memes, logos, drawings or charts
+- an empty room, a plain wall, a blank or abstract image
+- something so blurry, dark or cluttered that no single item can be made out
+
+Set isProduct = true when one clear sellable item, or a small set of identical items, is the
+subject of the photo. It does not have to be handmade — judge that separately in isLikelyHandmade.
+
+When isProduct is false, fill rejectReason and rejectReasonTamil with one short sentence saying
+what you actually see, kindly, and still fill in every other field with your best reading of the
+image so nothing downstream is left empty. When isProduct is true, leave both reject fields as
+empty strings.`;
 
 // No per-model retry: the chain IS the retry. Measured on 2026-09-01, a model
 // answering 503 "high demand" kept answering 503 for minutes, so a second try
@@ -252,6 +286,10 @@ export async function generateCatalogDraft(
     draft.suggestedPriceMax = Math.round(draft.suggestedPriceMin * 1.6);
   }
   if (!Array.isArray(draft.tags)) draft.tags = [];
+
+  // Only an explicit false rejects the photo. A model that omits the field or
+  // answers with something odd must not lock the artisan out of their own sale.
+  draft.isProduct = draft.isProduct !== false;
 
   return draft;
 }

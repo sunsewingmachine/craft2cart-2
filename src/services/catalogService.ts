@@ -9,6 +9,10 @@ import { Language } from '../types';
 // thing that must never break during a live demo.
 
 export interface CatalogDraft {
+  /** False when Gemini says the photo shows no sellable item. Blocks the sell flow. */
+  isProduct: boolean;
+  rejectReason: string;
+  rejectReasonTamil: string;
   name: string;
   nameTamil: string;
   category: string;
@@ -43,6 +47,11 @@ const REQUEST_TIMEOUT_MS = 75_000;
 
 function buildFallbackDraft(fallback: CatalogFallback): CatalogDraft {
   return {
+    // Never reject on a fallback draft: the photo was not looked at, so there is
+    // no verdict to act on, and an offline artisan must still be able to sell.
+    isProduct: true,
+    rejectReason: '',
+    rejectReasonTamil: '',
     name: fallback.name,
     nameTamil: fallback.name,
     category: 'Handicrafts & Sustainable Living',
@@ -100,6 +109,15 @@ export async function analyzeProductPhoto(
     clearTimeout(timer);
   }
 }
+
+/** The reason a photo was turned away, in the artisan's language. */
+export const rejectReason = (draft: CatalogDraft, lang: Language): string => {
+  const ta = (draft.rejectReasonTamil || '').trim();
+  const en = (draft.rejectReason || '').trim();
+  if (lang === 'ta') return ta || en;
+  if (lang === 'both') return ta && en ? `${ta}\n${en}` : ta || en;
+  return en || ta;
+};
 
 /** Pick the AI title/description for the artisan's chosen language. */
 export const draftName = (draft: CatalogDraft, lang: Language): string =>

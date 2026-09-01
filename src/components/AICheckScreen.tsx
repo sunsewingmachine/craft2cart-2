@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Language } from '../types';
 import { getTranslation, bi, speechFor } from '../data/translations';
 import { speakText, playTapTone } from '../utils/audio';
-import { CatalogDraft } from '../services/catalogService';
+import { CatalogDraft, rejectReason } from '../services/catalogService';
 
 interface AICheckScreenProps {
   lang: Language;
@@ -31,6 +31,13 @@ export const AICheckScreen: React.FC<AICheckScreenProps> = ({
   onRetake
 }) => {
   const t = getTranslation(lang);
+
+  // Gemini looked at the photo and found nothing sellable in it — a selfie, a
+  // screenshot, an empty wall. Only an explicit verdict rejects: a fallback
+  // draft (offline, no key) always says isProduct, so a flat network can never
+  // accuse the artisan of photographing the wrong thing.
+  const isRejected = !isAnalyzing && aiSource === 'ai' && draft?.isProduct === false;
+
   const [isEditing, setIsEditing] = useState(false);
   const [customName, setCustomName] = useState(detectedName);
   const [isListeningMic, setIsListeningMic] = useState(false);
@@ -142,8 +149,57 @@ export const AICheckScreen: React.FC<AICheckScreenProps> = ({
         </div>
       )}
 
+      {/* Photo turned away. This replaces the whole confirm flow rather than
+          sitting beside it: there is nothing here to confirm or correct, and the
+          only way forward is another photo. */}
+      {isRejected && draft && (
+        <div className="w-full flex flex-col gap-4">
+          <div className="w-full bg-[#ffe9e4] border-2 border-[#c05621] rounded-2xl p-4 flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <span
+                className="material-symbols-outlined text-2xl text-[#c05621]"
+                style={{ fontVariationSettings: "'FILL' 1" }}
+              >
+                report
+              </span>
+              <h2 className="font-['Public_Sans'] text-xl font-bold text-[#1a1c1b]">
+                {bi('இது பொருளின் படம் அல்ல', 'This is not a product photo', lang)}
+              </h2>
+            </div>
+
+            <p className="font-['Public_Sans'] text-base text-[#57423a] whitespace-pre-line">
+              {rejectReason(draft, lang) ||
+                bi(
+                  'இந்த புகைப்படத்தில் விற்பனைப் பொருள் தெரியவில்லை.',
+                  'No item that can be sold is visible in this photo.',
+                  lang
+                )}
+            </p>
+
+            <p className="font-['Public_Sans'] text-base text-[#1a1c1b]">
+              {bi(
+                'விற்க விரும்பும் பொருளை வெளிச்சத்தில் தெளிவாக எடுத்து மீண்டும் முயற்சிக்கவும்.',
+                'Take a clear, well-lit photo of the item you want to sell and try again.',
+                lang
+              )}
+            </p>
+          </div>
+
+          <button
+            onClick={() => {
+              playTapTone('tap');
+              onRetake();
+            }}
+            className="w-full h-[64px] bg-[#c05621] hover:bg-[#9f3e07] text-[#ffffff] rounded-xl font-['Public_Sans'] font-bold text-lg flex items-center justify-center gap-2 soft-shadow btn-press"
+          >
+            <span className="material-symbols-outlined text-2xl">photo_camera</span>
+            <span>{bi('மீண்டும் எடுக்கவும்', 'Take another photo', lang)}</span>
+          </button>
+        </div>
+      )}
+
       {/* Question Area */}
-      <div className={`w-full text-center mb-6 flex flex-col items-center ${isAnalyzing ? 'hidden' : ''}`}>
+      <div className={`w-full text-center mb-6 flex flex-col items-center ${isAnalyzing || isRejected ? 'hidden' : ''}`}>
         <div className="flex items-center justify-center gap-3 mb-2">
           <h2 className="font-['Source_Serif_4',serif] text-2xl sm:text-3xl font-bold text-[#1a1c1b]">
             {isEditing ? `${bi('பொருள்', 'Product', lang)}: ${customName}` : getLocalizedQuestion()}
@@ -176,7 +232,7 @@ export const AICheckScreen: React.FC<AICheckScreenProps> = ({
 
       {/* What the AI actually read. Showing material, category and a price range
           is the difference between "it guessed a name" and a real catalog draft. */}
-      {!isAnalyzing && draft && (
+      {!isAnalyzing && !isRejected && draft && (
         <div className="w-full bg-[#ffffff] rounded-2xl soft-shadow border border-[#e8e5df] p-4 mb-6 flex flex-col gap-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -226,7 +282,11 @@ export const AICheckScreen: React.FC<AICheckScreenProps> = ({
       )}
 
       {/* Action Buttons */}
-      <div className={`w-full flex flex-col gap-3.5 mt-auto ${isAnalyzing ? 'opacity-40 pointer-events-none' : ''}`}>
+      <div
+        className={`w-full flex flex-col gap-3.5 mt-auto ${isAnalyzing ? 'opacity-40 pointer-events-none' : ''} ${
+          isRejected ? 'hidden' : ''
+        }`}
+      >
         <button
           onClick={() => {
             playTapTone('success');
@@ -257,7 +317,7 @@ export const AICheckScreen: React.FC<AICheckScreenProps> = ({
         onClick={handleVoiceCorrection}
         className={`w-full mt-6 bg-[#ffffff] rounded-2xl p-4 soft-shadow flex items-center gap-4 border border-[#e8e5df] cursor-pointer hover:bg-[#f4f4f1] transition-all btn-press ${
           isListeningMic ? 'ring-2 ring-[#c05621] bg-[#ffdbcd]/20' : ''
-        }`}
+        } ${isRejected ? 'hidden' : ''}`}
       >
         <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
           isListeningMic ? 'bg-[#c05621] text-white animate-pulse' : 'bg-[#d6e0f6] text-[#555f71]'

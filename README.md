@@ -73,10 +73,37 @@ here so nothing about it is lost. What it did:
 - **Its judgement call**: infrastructure failures (missing key, offline) warn but
   let the seller continue. Only a genuine "not a product" verdict blocks the flow.
 
-The gatekeeping idea is kept. It is being rebuilt on the layered pipeline above —
-one Gemini call in `server/gemini.ts` that both catalogs the item *and* returns
-the verdict — rather than as a second, separate vision call, so a photo is not
-sent to the model twice.
+### How it works here now
+
+The gatekeeping is kept, rebuilt on the layered pipeline above. The difference is
+that it is **not a second vision call**: the one catalog request in
+`server/gemini.ts` now also returns `isProduct`, `rejectReason` and
+`rejectReasonTamil`, so a photo is never sent to the model twice and a valid
+product is catalogued and cleared in the same round trip.
+
+When the verdict is false, `AICheckScreen` replaces the whole confirm flow with an
+*This is not a product photo* card carrying Gemini's own reason in the artisan's
+language, and the only control is *Take another photo* — there is nothing to
+confirm or correct on a photo of a wall.
+
+Two guards keep it from locking anyone out:
+
+- Only an **explicit** `isProduct: false` from a real AI answer rejects. A
+  fallback draft — no key, offline, a timed-out model — is always marked
+  `isProduct: true`, so a flat network can never accuse an artisan of
+  photographing the wrong thing.
+- A missing or malformed field is read as "product". The failure direction is
+  always towards letting the sale through.
+
+Verify it against the live model with the reusable script:
+
+```bash
+node scripts/test-api-analyze.mjs http://localhost:3000 <image-url>
+```
+
+Measured 1 Sep 2026 on `gemini-3.5-flash`: a jute tote came back
+`isProduct: true` in 21s (cold), a photo of a person came back `isProduct: false`
+in 7s with the reason in both Tamil and English.
 
 ## Roadmap
 
@@ -84,6 +111,6 @@ sent to the model twice.
 - [x] Firebase sign-in: Google and phone OTP
 - [x] Photo upload to Firebase Storage, products in Firestore
 - [x] Three language modes across every screen
-- [ ] Reject non-product photos before they become a listing
+- [x] Reject non-product photos before they become a listing
 - [ ] One verified end-to-end pass: Gemini → Storage upload → Firestore write
 - [ ] Real marketplace linkage (ONDC and friends) instead of the demo channel cards
