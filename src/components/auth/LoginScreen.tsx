@@ -267,8 +267,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ lang, onLanguageChange
             <label htmlFor="inputLoginPhoneNumber" className="text-base font-bold">
               {bi('உங்கள் மொபைல் எண்', 'Your mobile number', lang)}
             </label>
-            <div className="flex items-center gap-2">
-              <span className="h-[56px] px-4 flex items-center bg-[#e8e8e5] rounded-xl text-lg font-bold text-[#57423a]">
+            {/* +91 rides inside the field rather than in a box beside it, so the
+                number reads as one thing. It is a label, not a value: the input
+                still holds only what the artisan types, and toIndianE164 adds
+                the country code. */}
+            <div className="relative">
+              <span className="absolute left-4 top-0 h-[56px] flex items-center pointer-events-none text-lg font-bold text-[#57423a]">
                 +91
               </span>
               <input
@@ -279,7 +283,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ lang, onLanguageChange
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="98421 77340"
-                className="flex-1 min-w-0 h-[56px] bg-white border-2 border-[#e8e5df] focus:border-[#128752] rounded-xl px-4 text-lg font-bold tracking-wide focus:outline-none"
+                className="w-full h-[56px] bg-white border-2 border-[#e8e5df] focus:border-[#128752] rounded-xl pl-[4.25rem] pr-4 text-lg font-bold tracking-wide focus:outline-none"
               />
             </div>
             <p className="text-sm text-[#57423a]">
