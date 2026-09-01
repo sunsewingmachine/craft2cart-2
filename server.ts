@@ -2,12 +2,17 @@ import express from 'express';
 import path from 'path';
 import dotenv from 'dotenv';
 import { catalogRouter } from './server/catalogRoutes';
+import { healthResult } from './server/catalogHandlers';
 import { geminiModelName, isGeminiConfigured } from './server/gemini';
 
-// App server: serves the built SPA in production, proxies through Vite in dev,
-// and hosts the /api routes. Gemini is only ever called from here so the API
-// key stays off the client. API routes are registered before the Vite
+// Local dev and self-hosted server: serves the built SPA, proxies through Vite
+// in dev, and hosts the /api routes. Gemini is only ever called server-side so
+// the API key stays off the client. API routes are registered before the Vite
 // middleware, otherwise Vite's catch-all would swallow them.
+//
+// On Vercel this file does not run at all — the deployment is a static bundle
+// plus the serverless functions in api/**. Both transports call the same
+// handlers in server/catalogHandlers.ts, so what works here works there.
 
 dotenv.config({ path: '.env.local' });
 dotenv.config();
@@ -20,12 +25,8 @@ app.use(express.json({ limit: '12mb' }));
 
 // API health check
 app.get('/api/health', (_req, res) => {
-  res.json({
-    status: 'ok',
-    app: 'Craft2Cart',
-    gemini: isGeminiConfigured() ? geminiModelName() : 'not-configured',
-    time: new Date().toISOString()
-  });
+  const { status, body } = healthResult();
+  res.status(status).json(body);
 });
 
 app.use('/api/catalog', catalogRouter);

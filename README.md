@@ -105,6 +105,36 @@ Measured 1 Sep 2026 on `gemini-3.5-flash`: a jute tote came back
 `isProduct: true` in 21s (cold), a photo of a person came back `isProduct: false`
 in 7s with the reason in both Tamil and English.
 
+## Deploying (Vercel)
+
+The production deployment is **not** this Express server. Vercel builds the Vite
+bundle and serves `dist/` from the CDN, so `server.ts` never runs there. `/api`
+is served instead by the serverless functions in `api/**`.
+
+Both transports are thin wrappers over `server/catalogHandlers.ts`, which holds
+the actual rules — what counts as a valid photo, the size ceiling, what a failure
+looks like. Add an endpoint in one place and wire it in both, or the two
+environments drift and the difference only shows up in production.
+
+Watch for the failure this arrangement had: with no `api/**` the deployed app
+answered 404 to every AI call, and because `catalogService` is built never to
+throw, it looked like it was working — it had quietly dropped to demo values.
+`curl https://<deployment>/api/health` is the honest check.
+
+### Environment variables on the host
+
+These must be set in the Vercel project, not just in `.env.local`:
+
+| Variable | Needed for |
+| --- | --- |
+| `GEMINI_API_KEY` | The AI cataloging and the photo gatekeeper. Server-side only. |
+| `VITE_FIREBASE_*` (7 of them) | Sign-in, cloud storage, Firestore. |
+
+The `VITE_*` ones are inlined by Vite **at build time**, so changing them needs a
+redeploy, not just a restart. When they are absent the app is not broken — it
+starts in demo mode with no login wall and local-only storage, which is exactly
+what a missing variable looks like from the outside.
+
 ## Roadmap
 
 - [x] Real Gemini cataloging behind `/api/catalog/analyze`
@@ -112,5 +142,6 @@ in 7s with the reason in both Tamil and English.
 - [x] Photo upload to Firebase Storage, products in Firestore
 - [x] Three language modes across every screen
 - [x] Reject non-product photos before they become a listing
+- [ ] Set `GEMINI_API_KEY` and `VITE_FIREBASE_*` on Vercel so production leaves demo mode
 - [ ] One verified end-to-end pass: Gemini → Storage upload → Firestore write
 - [ ] Real marketplace linkage (ONDC and friends) instead of the demo channel cards
