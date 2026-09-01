@@ -36,6 +36,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ lang, onLanguageChange
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Firebase's own wording, shown on demand. Several different setup problems
+  // collapse into the same friendly sentence, so keeping the raw text one tap
+  // away is the difference between fixing it and guessing at it.
+  const [errorDetail, setErrorDetail] = useState<string | null>(null);
+  const [showDetail, setShowDetail] = useState(false);
   const confirmationRef = useRef<ConfirmationResult | null>(null);
 
   // The verifier owns a DOM widget; leaving it behind breaks the next attempt.
@@ -87,12 +92,21 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ lang, onLanguageChange
   const handleFailure = (err: unknown) => {
     const message = err instanceof AuthError ? describeError(err.code) : describeError('unknown');
     setError(message);
+    setErrorDetail(
+      err instanceof AuthError
+        ? `${err.code}: ${err.message}`
+        : err instanceof Error
+          ? err.message
+          : String(err)
+    );
+    setShowDetail(false);
     playTapTone('tap');
   };
 
   const handleGoogle = async () => {
     playTapTone('tap');
     setError(null);
+    setErrorDetail(null);
     setBusy(true);
     try {
       await signInWithGoogle();
@@ -107,6 +121,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ lang, onLanguageChange
   const handleSendCode = async () => {
     playTapTone('tap');
     setError(null);
+    setErrorDetail(null);
     setBusy(true);
     try {
       confirmationRef.current = await startPhoneSignIn(toIndianE164(phone), RECAPTCHA_CONTAINER_ID);
@@ -125,6 +140,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ lang, onLanguageChange
   const handleConfirmCode = async () => {
     playTapTone('tap');
     setError(null);
+    setErrorDetail(null);
     if (!confirmationRef.current) {
       setMode('phone-number');
       return;
@@ -206,6 +222,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ lang, onLanguageChange
               onClick={() => {
                 playTapTone('tap');
                 setError(null);
+    setErrorDetail(null);
                 setMode('phone-number');
               }}
               disabled={busy}
@@ -260,6 +277,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ lang, onLanguageChange
               onClick={() => {
                 playTapTone('tap');
                 setError(null);
+    setErrorDetail(null);
                 setMode('choose');
               }}
               className="w-full h-[60px] text-[#57423a] font-bold text-lg btn-press"
@@ -299,6 +317,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ lang, onLanguageChange
               onClick={() => {
                 playTapTone('tap');
                 setError(null);
+    setErrorDetail(null);
                 setCode('');
                 resetPhoneVerifier();
                 setMode('phone-number');
@@ -316,7 +335,27 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ lang, onLanguageChange
             className="mt-5 w-full bg-[#ffdbcd] border-2 border-[#9f3e07] rounded-xl p-4 flex items-start gap-3"
           >
             <span className="material-symbols-outlined text-2xl text-[#9f3e07]">error</span>
-            <p className="text-base font-bold text-[#57423a]">{error}</p>
+            <div className="min-w-0 flex-1">
+              <p className="text-base font-bold text-[#57423a]">{error}</p>
+              {errorDetail && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setShowDetail((open) => !open)}
+                    className="mt-1 text-sm font-bold text-[#9f3e07] underline underline-offset-2"
+                  >
+                    {showDetail
+                      ? bi('விவரங்களை மறை', 'Hide details', lang)
+                      : bi('விவரங்களைக் காட்டு', 'Show details', lang)}
+                  </button>
+                  {showDetail && (
+                    <p className="mt-1 text-xs font-mono text-[#57423a] break-words whitespace-pre-wrap">
+                      {errorDetail}
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         )}
 
