@@ -107,6 +107,9 @@ in 7s with the reason in both Tamil and English.
 
 ## Deploying (Vercel)
 
+Live at <https://craft2cart-2-flame.vercel.app> (Vercel project `craft2cart-2`,
+deployed on every push to `main`).
+
 The production deployment is **not** this Express server. Vercel builds the Vite
 bundle and serves `dist/` from the CDN, so `server.ts` never runs there. `/api`
 is served instead by the serverless functions in `api/**`.
@@ -127,8 +130,8 @@ These must be set in the Vercel project, not just in `.env.local`:
 
 | Variable | Needed for |
 | --- | --- |
-| `GEMINI_API_KEY` | The AI cataloging and the photo gatekeeper. Server-side only. |
-| `VITE_FIREBASE_*` (7 of them) | Sign-in, cloud storage, Firestore. |
+| `GEMINI_API_KEY` | The AI cataloging and the photo gatekeeper. Server-side only. **Set.** |
+| `VITE_FIREBASE_*` (7 of them) | Sign-in, cloud storage, Firestore. **Not set** — this is why the deployed app has no login screen. |
 
 The `VITE_*` ones are inlined by Vite **at build time**, so changing them needs a
 redeploy, not just a restart. When they are absent the app is not broken — it
@@ -142,6 +145,7 @@ what a missing variable looks like from the outside.
 - [x] Photo upload to Firebase Storage, products in Firestore
 - [x] Three language modes across every screen
 - [x] Reject non-product photos before they become a listing
-- [ ] Set `GEMINI_API_KEY` and `VITE_FIREBASE_*` on Vercel so production leaves demo mode
+- [x] Real Gemini cataloging running in production, not just locally
+- [ ] Set the seven `VITE_FIREBASE_*` values on Vercel so production gets its login wall back
 - [ ] One verified end-to-end pass: Gemini → Storage upload → Firestore write
 - [ ] Real marketplace linkage (ONDC and friends) instead of the demo channel cards
